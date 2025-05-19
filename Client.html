@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Page</title>
+  <style>
+    #chatLog {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+
+    #Test_btn {
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <h1>TEST WEBSITE</h1>
+  <div id="chatLegend">
+    <strong>Team Legend:</strong>
+    <span style="color: blue;">🔵 Team A</span> |
+    <span style="color: red;">🔴 Team B</span> |
+    <span style="font-weight: bold;">You</span>
+  </div>
+  <h2 id="teamNotice"></h2>
+  <button id="startGameBtn">Start Game</button>
+  <div id="wordArea" style="display: none;">
+  <p><strong>Topic:</strong> <span id="topicWord"></span></p>
+  <p><strong>Taboo Words:</strong> <span id="tabooWords"></span></p>
+  </div>
+
+  <div id="gameArea" style="display: none;">
+  <!-- You can put more game-related buttons/content here later -->
+  </div>
+
+
+  <div id="chatLog"></div>
+
+  <form id="chatForm">
+    <label for="Chat">Chat:</label><br>
+    <input type="text" id="Chat" name="Chat" autocomplete="off" required />
+    <input type="submit" value="Submit" />
+  </form>
+
+  <button id="Test_btn" name="Test_btn" type="button">TEST BUTTON !!!!</button>
+
+  <script src="/socket.io/socket.io.js">
+    socket = io();
+  </script>
+
+  <script>
+    
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("Chat");
+    const chatLog = document.getElementById("chatLog");
+    socket = io();
+    chatForm.addEventListener("submit", function (event) {
+      event.preventDefault(); // Prevent page reload
+
+      const message = chatInput.value.trim();
+      if (message === "") return;
+
+      // Add to chat log(BAD NO WORKY WITH NEW STUFF)
+      
+
+      // Clear input
+      chatInput.value = "";
+
+      // TODO: Send message to server (WebSocket or fetch)
+      socket.emit("chat_message", message);
+        chatInput.value = "";
+        console.log("Chat has been emitted from client end")
+        
+    });
+
+    button=document.getElementById("Test_btn")
+    button.onclick= function() {response_function()};
+
+    function response_function() {
+      const pressed= true
+      socket.emit("Btn_Clicked" , pressed)
+      console.log("Btn Pressed")
+    }
+
+    socket.on("Change_Color", (svr_response) => {
+      console.log("Server_Response Recieved")
+      document.getElementById('Test_btn').style.color = 'Red'
+    })
+
+    socket.on("chat_message", (data) => {
+  const msgElem = document.createElement("div");
+
+  const label = data.senderId === socket.id ? "[You]" : `[${data.name}]`;
+  msgElem.textContent = `${label}: ${data.message}`;
+
+  // Color by team
+  if (data.senderId !== socket.id) {
+    if (data.team === "A") {
+      msgElem.style.color = "blue";
+    } else if (data.team === "B") {
+      msgElem.style.color = "red";
+    }
+  } else {
+    msgElem.style.fontWeight = "bold"; // Your own message = bold
+  }
+
+  chatLog.appendChild(msgElem);
+  chatLog.scrollTop = chatLog.scrollHeight;
+});
+    
+    socket.on("assigned_team", (team) => {
+      document.getElementById("gameArea").style.display = "block";
+      document.getElementById("teamNotice").textContent = "You are on Team " + team;
+});
+document.getElementById("startGameBtn").onclick = () => {
+  socket.emit("start_game");
+};
+
+socket.on("your_turn", (wordSet) => {
+  document.getElementById("wordArea").style.display = "block";
+  document.getElementById("topicWord").textContent = wordSet.topic;
+  document.getElementById("tabooWords").textContent = wordSet.taboo.join(", ");
+});
+
+socket.on("new_turn", ({ team, clueGiver }) => {
+  if (socket.id !== clueGiver) {
+    document.getElementById("wordArea").style.display = "none";
+  }
+  console.log(`Team ${team}'s turn. Clue-giver: ${clueGiver}`);
+});
+  </script>
+</body>
+</html>
