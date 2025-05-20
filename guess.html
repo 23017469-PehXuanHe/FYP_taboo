@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Taboo Game - Card Holder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    #chatLog {
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #fff;
+      margin-bottom: 10px;
+    }
+
+    #wordCard {
+      border: 2px solid #0077cc;
+      padding: 10px;
+      background: #e0f7ff;
+      margin-bottom: 10px;
+    }
+
+    .button-group button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+
+    #forbiddenList {
+      color: red;
+      margin-left: 15px;
+    }
+
+    #chatInput {
+      width: 80%;
+      padding: 5px;
+    }
+
+    #sendBtn {
+      padding: 5px 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Taboo Game (Card Holder View)</h1>
+
+  <div id="wordCard">
+    <h2>Keyword: <span id="keyword">---</span></h2>
+    <h3>Forbidden Words:</h3>
+    <ul id="forbiddenList">
+      <li>---</li>
+    </ul>
+  </div>
+
+  <div class="button-group">
+    <button onclick="drawCard()">🎴 Draw Card</button>
+    <button onclick="buzz()">🚨 Buzzer</button>
+  </div>
+
+  <h3>Chat</h3>
+  <div id="chatLog"></div>
+  <input type="text" id="chatInput" placeholder="Type a message..." />
+  <button id="sendBtn" onclick="sendMessage()">Send</button>
+
+  <script>
+    const cards = [
+      { keyword: "Sun", forbidden: ["Hot", "Bright", "Sky", "Day", "Star"] },
+      { keyword: "Computer", forbidden: ["Keyboard", "Screen", "Mouse", "Laptop", "Tech"] },
+      { keyword: "Pizza", forbidden: ["Cheese", "Crust", "Topping", "Slice", "Oven"] },
+      { keyword: "Airplane", forbidden: ["Fly", "Pilot", "Wings", "Airport", "Sky"] },
+    ];
+
+    function drawCard() {
+      const card = cards[Math.floor(Math.random() * cards.length)];
+      document.getElementById('keyword').textContent = card.keyword;
+      const list = document.getElementById('forbiddenList');
+      list.innerHTML = '';
+      card.forbidden.forEach(word => {
+        const li = document.createElement('li');
+        li.textContent = word;
+        list.appendChild(li);
+      });
+    }
+
+    function buzz() {
+      alert("🚨 Buzzer Pressed! The guesser said a forbidden word!");
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("chatInput");
+      const msg = input.value.trim();
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = "👤 " + msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+    }
+  </script>
+</body>
+</html>
