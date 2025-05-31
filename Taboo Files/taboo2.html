@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taboo Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background: #222;
+      color: #fff;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      color: #000;
+      max-width: 500px;
+      margin: 30px auto;
+      padding: 25px;
+      border-radius: 15px;
+      border: 3px solid #ff4081;
+    }
+
+    h1 {
+      color: #ff4081;
+    }
+
+    button {
+      background-color: #ff4081;
+      color: white;
+      padding: 12px 25px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    button:hover {
+      background-color: #e91e63;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .btn-back {
+      margin-top: 30px;
+      display: inline-block;
+      background: #444;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      border-radius: 20px;
+    }
+
+    .scoreboard {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+
+    #winMessage {
+      font-size: 1.5rem;
+      color: #00ffc8;
+      margin-top: 30px;
+      font-weight: bold;
+    }
+
+    #setupScreen {
+      background: #333;
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      margin: 10px;
+      width: 80%;
+    }
+
+    #gameArea {
+      display: none;
+    }
+
+    #timer {
+      font-size: 1.2rem;
+      color: #ffeb3b;
+      margin-top: 10px;
+    }
+
+    #guessFeedback {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎮 Taboo Game</h1>
+
+<div id="setupScreen">
+  <h2>Enter Team Names</h2>
+  <input id="teamAInput" placeholder="Team A Name" />
+  <input id="teamBInput" placeholder="Team B Name" />
+  <br />
+  <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="gameArea">
+  <div id="cardDisplay" class="card">Loading card...</div>
+
+  <div style="margin: 20px auto;">
+    <input id="guessInput" type="text" placeholder="Type your guess..." />
+    <button onclick="submitGuess()">Submit Guess</button>
+    <p id="guessFeedback"></p>
+  </div>
+
+  <div class="scoreboard">
+    <p>Turn: <strong id="teamName">Team A</strong></p>
+    <p><span id="scoreA">Team A</span>: 0 | <span id="scoreB">Team B</span>: 0</p>
+    <p id="timer">⏳ Time left: 30s</p>
+  </div>
+
+  <div id="winMessage"></div>
+
+  <button id="btnDraw" onclick="showRandomCard()">Draw Card</button>
+  <button id="btnCorrect" onclick="correctGuess()">✔ Got It!</button>
+  <button id="btnSkip" onclick="nextTurn()">⏭ Skip</button>
+  <button id="btnRestart" onclick="restartGame()">🔁 Restart Game</button>
+</div>
+
+<a href="taboo.html" class="btn-back">⬅ Back to Home</a>
+
+<script>
+  function getAllCards() {
+    const baseCards = [
+      { word: "Sun", forbidden: ["Hot", "Bright", "Sky", "Day", "Light"] },
+      { word: "Pizza", forbidden: ["Cheese", "Toppings", "Slice", "Oven", "Italian"] },
+      { word: "Computer", forbidden: ["Keyboard", "Screen", "Mouse", "Internet", "Device"] },
+      { word: "Beach", forbidden: ["Sand", "Ocean", "Waves", "Sunburn", "Towel"] },
+      { word: "Airplane", forbidden: ["Fly", "Pilot", "Wings", "Airport", "Travel"] },
+      { word: "Chocolate", forbidden: ["Sweet", "Candy", "Dark", "Bar", "Milk"] },
+      { word: "Guitar", forbidden: ["Strings", "Music", "Instrument", "Pick", "Electric"] },
+      { word: "Elephant", forbidden: ["Trunk", "Big", "Animal", "Africa", "Tusks"] },
+      { word: "Library", forbidden: ["Books", "Quiet", "Read", "Study", "Shelves"] },
+      { word: "Basketball", forbidden: ["Hoop", "Dribble", "Court", "NBA", "Team"] },
+      { word: "Doctor", forbidden: ["Hospital", "Patient", "Medicine", "Nurse", "Health"] }
+    ];
+    const userCards = JSON.parse(localStorage.getItem("taboo_custom_cards") || "[]");
+    return baseCards.concat(userCards);
+  }
+
+  let allCards = [];
+  let availableCards = [];
+  let currentCard = null;
+  let teamA = "Team A", teamB = "Team B";
+  let score = { A: 0, B: 0 };
+  let currentTeam = "A";
+  let gameOver = false;
+  let timer;
+  let timeLeft = 30;
+  const winningScore = 10;
+
+  function startGame() {
+    const a = document.getElementById("teamAInput").value.trim();
+    const b = document.getElementById("teamBInput").value.trim();
+    if (a) teamA = a;
+    if (b) teamB = b;
+
+    document.getElementById("scoreA").textContent = teamA;
+    document.getElementById("scoreB").textContent = teamB;
+    document.getElementById("teamName").textContent = teamA;
+
+    allCards = getAllCards();
+    availableCards = [...allCards];
+
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameArea").style.display = "block";
+
+    updateScores();
+    showRandomCard();
+  }
+
+  function showRandomCard() {
+    if (gameOver || availableCards.length === 0) return;
+    clearInterval(timer);
+    timeLeft = 30;
+    updateTimer();
+
+    const index = Math.floor(Math.random() * availableCards.length);
+    currentCard = availableCards.splice(index, 1)[0];
+
+    document.getElementById("cardDisplay").innerHTML = `
+      <h2>Word: <span id="mainWord" style="color: #e91e63">[Hidden]</span></h2>
+      <p><strong>Forbidden Words:</strong></p>
+      <ul>${currentCard.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
+    `;
+
+    timer = setInterval(() => {
+      timeLeft--;
+      updateTimer();
+      if (timeLeft === 0) {
+        clearInterval(timer);
+        document.getElementById("mainWord").textContent = currentCard.word;
+      }
+    }, 1000);
+  }
+
+  function updateTimer() {
+    document.getElementById("timer").textContent = `⏳ Time left: ${timeLeft}s`;
+  }
+
+  function correctGuess() {
+    if (gameOver) return;
+    score[currentTeam]++;
+    updateScores();
+    checkWinner();
+    if (!gameOver) {
+      switchTeam();
+      showRandomCard();
+    }
+  }
+
+  function nextTurn() {
+    if (gameOver) return;
+    switchTeam();
+    showRandomCard();
+  }
+
+  function switchTeam() {
+    currentTeam = currentTeam === "A" ? "B" : "A";
+    document.getElementById("teamName").textContent = currentTeam === "A" ? teamA : teamB;
+  }
+
+  function updateScores() {
+    document.getElementById("scoreA").nextSibling.textContent = `: ${score.A}`;
+    document.getElementById("scoreB").nextSibling.textContent = `: ${score.B}`;
+  }
+
+  function checkWinner() {
+    if (score.A >= winningScore) {
+      endGame(`🏆 ${teamA} Wins!`);
+    } else if (score.B >= winningScore) {
+      endGame(`🏆 ${teamB} Wins!`);
+    }
+  }
+
+  function endGame(message) {
+    gameOver = true;
+    clearInterval(timer);
+    document.getElementById("winMessage").textContent = message;
+    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    document.getElementById("btnRestart").disabled = false;
+  }
+
+  function restartGame() {
+    score = { A: 0, B: 0 };
+    currentTeam = "A";
+    gameOver = false;
+    availableCards = [...getAllCards()];
+    clearInterval(timer);
+    timeLeft = 30;
+    updateScores();
+    document.getElementById("winMessage").textContent = "";
+    document.querySelectorAll("button").forEach(btn => btn.disabled = false);
+    document.getElementById("guessInput").value = "";
+    document.getElementById("guessFeedback").textContent = "";
+    showRandomCard();
+  }
+
+  function submitGuess() {
+    const input = document.getElementById("guessInput").value.trim().toLowerCase();
+    const correctWord = currentCard.word.toLowerCase();
+    const feedback = document.getElementById("guessFeedback");
+
+    if (input === correctWord) {
+      feedback.style.color = "#00ff99";
+      feedback.textContent = "✅ Correct!";
+      correctGuess();
+      document.getElementById("guessInput").value = "";
+    } else {
+      feedback.style.color = "#ff6666";
+      feedback.textContent = "❌ Try again.";
+    }
+  }
+</script>
+
+</body>
+</html>
