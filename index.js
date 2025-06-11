@@ -10,7 +10,15 @@ const io = socketIO(server);
 const port = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/guess.html");
+  res.sendFile(__dirname + "/Taboo.html");
+});
+
+app.get("/taboo2", (req, res) => {
+  res.sendFile(__dirname + "/taboo2.html");
+});
+
+app.get("/taboo3", (req, res) => {
+  res.sendFile(__dirname + "/taboo3.html");
 });
 
 // Cards
@@ -26,6 +34,8 @@ let Team_A = [];
 let Team_B = [];
 let Card_Holder = [];
 let guesser = [];
+
+let Team_Name = []
 
 let timer = null
 let Current_Card = null;
@@ -165,6 +175,18 @@ io.on("connection", (socket) => {
     Card_Holder_Count: Card_Holder.length,
     guesser_count: guesser.length
   };
+
+  socket.on("Team_A_Name", (Team_A) =>{
+    Team_Name.push(Team_A)
+  })
+
+  socket.on("Team_B_Name", (Team_B) =>{
+    Team_Name.push(Team_B)
+  })
+
+  if (Team_Name.length == 2) {
+    socket.emit("Team_Names",(Team_Name))
+  }
 
   socket.on("draw_card" , () =>{
 

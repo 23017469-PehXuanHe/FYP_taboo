@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taboo Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background: #222;
+      color: #fff;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      color: #000;
+      max-width: 500px;
+      margin: 30px auto;
+      padding: 25px;
+      border-radius: 15px;
+      border: 3px solid #ff4081;
+    }
+
+    h1 {
+      color: #ff4081;
+    }
+
+    button {
+      background-color: #ff4081;
+      color: white;
+      padding: 12px 25px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    button:hover {
+      background-color: #e91e63;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .btn-back {
+      margin-top: 30px;
+      display: inline-block;
+      background: #444;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      border-radius: 20px;
+    }
+
+    .scoreboard {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+
+    #winMessage {
+      font-size: 1.5rem;
+      color: #00ffc8;
+      margin-top: 30px;
+      font-weight: bold;
+    }
+
+    #setupScreen {
+      background: #333;
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      margin: 10px;
+      width: 80%;
+    }
+
+    #gameArea {
+      display: none;
+    }
+
+    #timer {
+      font-size: 1.2rem;
+      color: #ffeb3b;
+      margin-top: 10px;
+    }
+
+    #guessFeedback {
+      margin: 10px 0;
+    }
+
+    #chatLog {
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #fff;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎮 Taboo Game</h1>
+
+<div id="setupScreen">
+  <h2>Enter Team Names</h2>
+  <input id="teamAInput" placeholder="Team A Name" />
+  <input id="teamBInput" placeholder="Team B Name" />
+  <br />
+  <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="gameArea">
+  <h1>You are in <p1 id="Team"></p1>
+  <h1>Taboo Game: You are a <p1 id="roleDisplay"></p1></h1>
+  <h2>Round:<span id="RoundDisplay">1</span>
+  <div id="cardDisplay" class="card">Loading card...</div>
+
+  <div style="margin: 20px auto;">
+    <input id="guessInput" type="text" placeholder="Type your guess..." />
+    <button onclick="sendMessage()">Submit Guess</button>
+    <p id="guessFeedback"></p>
+  </div>
+
+  <div class="scoreboard">
+    <p>Turn: <strong id="teamName">Team A</strong></p>
+    <p><span id="scoreA">Team A</span>: <span id="scoreTeamA">0</span> | <span id="scoreB">Team B</span>: <span id="scoreTeamB">0</span></p>
+    <p id="timer">⏳ Time left: 30s</p>
+  </div>
+  <div id="chatLog"></div>
+  <div id="winMessage"></div>
+
+  <button id="drawBtn" onclick="drawCard()">Draw Card</button>
+  <button id="btnCorrect" onclick="correctGuess()">✔ Got It!</button> <!--Kinda Pointless ???-->
+  <button id="btnSkip" onclick="nextTurn()">⏭ Skip</button> <!--Implement this feature later-->
+  <button id="btnRestart" onclick="restartGame()">🔁 Restart Game</button> <!-- Discuss before implementation-->
+</div>
+
+<a href="/" class="btn-back">⬅ Back to Home</a>
+
+<script src="/socket.io/socket.io.js">
+    const socket = io();
+</script>
+
+ 
+<script>
+  // things to note: currently not using the team name system cause i need to discuss what to do about the join logic.
+  socket = io();
+ 
+  var My_Role;
+  var My_Team;
+  var Team_A_Name = "Team A"
+  var Team_B_Name = "Team B"
+  var currentTurn;
+ 
+  let scores = {
+    Team_A_Points: 0,
+    Team_B_Points: 0
+  };
+
+  document.getElementById("drawBtn").disabled = true
+
+  function startGame() {
+    const a = document.getElementById("teamAInput").value.trim();
+    const b = document.getElementById("teamBInput").value.trim();
+    if (a) var Team_A = a;
+    Team_A_Name = Team_A
+    socket.emit("Team_A_Name", (Team_A_Name)) //sends the name of team a and team b into the 
+    if (b) var Team_B = b;
+    Team_B_Name = Team_B
+    socket.emit("Team_B_Name", (Team_B_Name))
+    //team name logic ^^
+    
+    document.getElementById("teamName").textContent = Team_A;
+
+    //allCards = getAllCards();
+    //availableCards = [...allCards];
+
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameArea").style.display = "block";
+
+      //updateScores();
+      //showRandomCard();
+  }
+
+  //function updateScores() {
+    //document.getElementById("scoreA").nextSibling.textContent = `: ${score.A}`;
+    //document.getElementById("scoreB").nextSibling.textContent = `: ${score.B}`;
+  //}
+ 
+  function drawCard() {
+    socket.emit("draw_card")
+    console.log("line 81")
+  };
+ 
+  function buzz() {
+    alert("🚨 Buzzer Pressed! The guesser said a forbidden word!");
+  };
+ 
+   
+  function sendMessage() {
+    const input = document.getElementById("guessInput");
+    const msg = input.value.trim();
+    if (msg === "") return;
+    const log = document.getElementById("chatLog");
+    const newMsg = document.createElement("div");
+    newMsg.textContent = "👤 " + msg;
+    log.appendChild(newMsg);
+    log.scrollTop = log.scrollHeight;
+    input.value = "";
+ 
+    //client side message to server
+    socket.emit("chat_message", msg);
+    //chatInput.value = "";
+    console.log("Chat has been emitted from client end")
+  };
+ 
+ 
+    socket.on("Timer",(secondsLeft) =>{
+      document.getElementById("timer").textContent = secondsLeft;
+    });
+
+    socket.on("Team_Names",(Team_Name) => {
+      document.getElementById("scoreA").textContent = Team_Name[0]
+      document.getElementById("scoreB").textContent = Team_Name[1]
+    })
+ 
+    socket.on("Round_End", () =>{
+      alert("Round Ended")
+      document.getElementById("drawBtn").disabled = true;
+    })
+   
+    socket.on("card_drawn", (card) =>{
+      if (My_Role == "card_holder") {
+
+        document.getElementById("cardDisplay").innerHTML = `
+        <h2>Word: <span id="mainWord" style="color: #e91e63">${card.keyword}</span></h2>
+        <p><strong>Forbidden Words:</strong></p>
+        <ul>${card.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
+        `;
+        console.log("Sucess")
+        //document.getElementById("keyword").textContent = card.keyword;
+        //const list = document.getElementById("forbiddenList");
+        //list.innerHTML ="";
+        //card.forbidden.forEach(word => {
+          //const li = document.createElement("li")
+          //li.textContent = word;
+          //list.appendChild(li)
+        //});
+      } else if (My_Role== "guesser") {
+          console.log("This line was triggered")
+          //const list = document.getElementById("forbiddenList");
+          //list.innerHTML ="";
+          //card.forbidden.forEach(word => {
+            //const li = document.createElement("li")
+            //li.textContent = word;
+            //list.appendChild(li)
+          //});
+      };
+    document.getElementById("drawBtn").disabled = true;
+
+    });
+ 
+    socket.on("role_assigned", (role) => {
+      const drawBtn = document.getElementById("drawBtn")
+      const roleDisplay = document.getElementById("roleDisplay")
+      My_Role=role
+
+      if (role == "guesser") {
+        roleDisplay.textContent = "Guesser"
+        drawBtn.style.display = "none";
+       
+      };
+ 
+      if (role == "card_holder") {
+        roleDisplay.textContent = "card_holder"
+       
+      };
+ 
+    });
+ 
+    socket.on("Team", (assignedTeam) => {
+      const Team = document.getElementById("Team")
+      My_Team = assignedTeam
+      if (assignedTeam == "Team_A") {
+        Team.textContent = "Team_A"
+      }
+ 
+      if (assignedTeam == "Team_B") {
+        Team.textContent = "Team_B"
+      }
+    })
+ 
+    //Client side WS code to display sent messages
+    socket.on("chat_message" , (Reply) => {
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = `Other: ${Reply}`
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+    });
+ 
+    socket.on("Forbidden_Word_Used" , (Forbidden_Word_Used) => {
+      console.log("Forbidden word")
+      alert("U Have Used A Forbidden Word")
+    })
+ 
+    socket.on("Correct_Answer", () => {
+      alert("correct answer has been said")
+      document.getElementById("drawBtn").disabled = false;
+      if (My_Team == "Team_A") {
+        scores.Team_A_Points ++
+        console.log("Team A + 1")
+        
+        socket.emit("Points_Updated",(scores))
+        
+      } else if (My_Team == "Team_B") {
+        scores.Team_B_Points ++
+        console.log("Team B + 1")
+        console.log(scores)
+        
+        socket.emit("Points_Updated",(scores))
+      }
+      
+    })
+    
+    socket.on("Update_Points", (updated_Scores) => {
+      scores = updated_Scores;
+      console.log("Updated scores :",scores)
+      document.getElementById("scoreTeamA").textContent = scores.Team_A_Points
+      document.getElementById("scoreTeamB").textContent = scores.Team_B_Points
+    })
+    //socket.on("Score_Update", (scores) => {
+    //document.getElementById("scoreTeamA").textContent = `Team A: ${scores.Team_A}`;
+    //document.getElementById("scoreTeamB").textContent = `Team B: ${scores.Team_B}`;
+    //});
+ 
+    socket.on("Team_A_Turn", (currentRound) => {
+      document.getElementById("teamName").textContent = "Team_A"
+      if (My_Team === "Team_A" && My_Role === "card_holder") {
+        document.getElementById("drawBtn").disabled = false
+      }
+      const round = currentRound
+      document.getElementById("RoundDisplay").textContent = round
+    })
+ 
+    socket.on("Team_B_Turn", (currentRound) => {
+      document.getElementById("teamName").textContent = "Team_B"
+      if (My_Team === "Team_B" && My_Role === "card_holder") {
+        document.getElementById("drawBtn").disabled = false
+      }
+      const round = currentRound
+      document.getElementById("RoundDisplay").textContent = round
+    })
+ 
+    socket.on("Next_Round" , (data) =>{
+      document.getElementById("RoundDisplay").textContent = data.round;
+      document.getElementById("teamName").textContent = data.Team
+    });
+ 
+    //socket.on("Game_Over", () => {
+      //alert("Game Over")
+      //document.getElementById("drawBtn").disabled = true;
+    //})
+ 
+    //document.getElementById("micBtn").addEventListener("click", () => {
+      //socket.emit("Mic_Pressed")
+      //console.log("Mic pressed")
+    //})
+ 
+    //socket.on("Transcribed_Text", (Text) => {
+      //const log = document.getElementById("chatLog");
+      //const newMsg = document.createElement("div");
+      //newMsg.textContent = `Other(Transcribed): ${Reply}`
+      //log.appendChild(newMsg);
+      //log.scrollTop = log.scrollHeight;
+    //});
+ 
+ 
+ 
+  </script>
+  </body>
+</html>
+
+<!--<script>
+  //socket = io();
+
+  function getAllCards() {
+    const baseCards = [
+      { word: "Sun", forbidden: ["Hot", "Bright", "Sky", "Day", "Light"] },
+      { word: "Pizza", forbidden: ["Cheese", "Toppings", "Slice", "Oven", "Italian"] },
+      { word: "Computer", forbidden: ["Keyboard", "Screen", "Mouse", "Internet", "Device"] },
+      { word: "Beach", forbidden: ["Sand", "Ocean", "Waves", "Sunburn", "Towel"] },
+      { word: "Airplane", forbidden: ["Fly", "Pilot", "Wings", "Airport", "Travel"] },
+      { word: "Chocolate", forbidden: ["Sweet", "Candy", "Dark", "Bar", "Milk"] },
+      { word: "Guitar", forbidden: ["Strings", "Music", "Instrument", "Pick", "Electric"] },
+      { word: "Elephant", forbidden: ["Trunk", "Big", "Animal", "Africa", "Tusks"] },
+      { word: "Library", forbidden: ["Books", "Quiet", "Read", "Study", "Shelves"] },
+      { word: "Basketball", forbidden: ["Hoop", "Dribble", "Court", "NBA", "Team"] },
+      { word: "Doctor", forbidden: ["Hospital", "Patient", "Medicine", "Nurse", "Health"] }
+    ];
+    const userCards = JSON.parse(localStorage.getItem("taboo_custom_cards") || "[]");
+    return baseCards.concat(userCards);
+  }
+
+  let allCards = [];
+  let availableCards = [];
+  let currentCard = null;
+  let teamA = "Team A", teamB = "Team B";
+  let score = { A: 0, B: 0 };
+  let currentTeam = "A";
+  let gameOver = false;
+  let timer;
+  let timeLeft = 30;
+  const winningScore = 10;
+
+  function startGame() {
+    const a = document.getElementById("teamAInput").value.trim();
+    const b = document.getElementById("teamBInput").value.trim();
+    if (a) teamA = a;
+    socket.emit("Team_A_Name", (teamA))
+    if (b) teamB = b;
+    socket.emit("Team_B_Name", (teamB))
+
+    
+    document.getElementById("teamName").textContent = teamA;
+
+    allCards = getAllCards();
+    availableCards = [...allCards];
+
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameArea").style.display = "block";
+
+    updateScores();
+    showRandomCard();
+  }
+
+  function showRandomCard() {
+    if (gameOver || availableCards.length === 0) return;
+    clearInterval(timer);
+    timeLeft = 30;
+    updateTimer();
+
+    const index = Math.floor(Math.random() * availableCards.length);
+    currentCard = availableCards.splice(index, 1)[0];
+
+    document.getElementById("cardDisplay").innerHTML = `
+      <h2>Word: <span id="mainWord" style="color: #e91e63">[Hidden]</span></h2>
+      <p><strong>Forbidden Words:</strong></p>
+      <ul>${currentCard.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
+    `;
+
+    timer = setInterval(() => {
+      timeLeft--;
+      updateTimer();
+      if (timeLeft === 0) {
+        clearInterval(timer);
+        document.getElementById("mainWord").textContent = currentCard.word;
+      }
+    }, 1000);
+  }
+
+  function updateTimer() {
+    document.getElementById("timer").textContent = `⏳ Time left: ${timeLeft}s`;
+  }
+  //PLace Holder for text message until effy is done with his features
+  function sendMessage() {
+      
+    };
+
+  function correctGuess() {
+    if (gameOver) return;
+    score[currentTeam]++;
+    updateScores();
+    checkWinner();
+    if (!gameOver) {
+      switchTeam();
+      showRandomCard();
+    }
+  }
+
+  function nextTurn() {
+    if (gameOver) return;
+    switchTeam();
+    showRandomCard();
+  }
+
+  function switchTeam() {
+    currentTeam = currentTeam === "A" ? "B" : "A";
+    document.getElementById("teamName").textContent = currentTeam === "A" ? teamA : teamB;
+  }
+
+  
+
+  function checkWinner() {
+    if (score.A >= winningScore) {
+      endGame(`🏆 ${teamA} Wins!`);
+    } else if (score.B >= winningScore) {
+      endGame(`🏆 ${teamB} Wins!`);
+    }
+  }
+
+  function endGame(message) {
+    gameOver = true;
+    clearInterval(timer);
+    document.getElementById("winMessage").textContent = message;
+    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    document.getElementById("btnRestart").disabled = false;
+  }
+
+  function restartGame() {
+    score = { A: 0, B: 0 };
+    currentTeam = "A";
+    gameOver = false;
+    availableCards = [...getAllCards()];
+    clearInterval(timer);
+    timeLeft = 30;
+    updateScores();
+    document.getElementById("winMessage").textContent = "";
+    document.querySelectorAll("button").forEach(btn => btn.disabled = false);
+    document.getElementById("guessInput").value = "";
+    document.getElementById("guessFeedback").textContent = "";
+    showRandomCard();
+  }
+
+  function submitGuess() {
+    //merged this code with the chatmessage function in the old guess.html code
+    const input = document.getElementById("guessInput").value.trim().toLowerCase();
+    const correctWord = currentCard.word.toLowerCase();
+    const feedback = document.getElementById("guessFeedback");
+    const msg = input;
+    if (msg === "") return;
+    const log = document.getElementById("chatLog");
+    const newMsg = document.createElement("div");
+    newMsg.textContent = "👤 " + msg;
+    log.appendChild(newMsg);
+    log.scrollTop = log.scrollHeight;
+    input.value = "";
+ 
+    //client side message to server
+    socket.emit("chat_message", msg);
+    chatInput.value = "";
+    console.log("Chat has been emitted from client end")
+
+    //if (input === correctWord) {
+      //feedback.style.color = "#00ff99";
+      //feedback.textContent = "✅ Correct!";
+      //correctGuess();
+      //document.getElementById("guessInput").value = "";
+    //} else {
+      //feedback.style.color = "#ff6666";
+      //feedback.textContent = "❌ Try again.";
+    //}
+  }
+
+  socket.on("Update_Team_Names", (team_name_update) => {
+    document.getElementById("scoreA").textContent = team_name_update[0];
+    document.getElementById("scoreB").textContent = team_name_update[1];
+  })
+
+  socket.on("chat_message" , (Reply) => {
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = `Other: ${Reply}`
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+    });
+</script>
+
+
