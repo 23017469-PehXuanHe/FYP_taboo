@@ -1,0 +1,50 @@
+const texts = document.querySelector(".texts");
+const toggleBtn = document.getElementById("toogle-btn");
+
+window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.interimResults = true;
+
+let isListening = false;
+let p = document.createElement("p");
+
+recognition.addEventListener("result", (e) => {
+  const text = Array.from(e.results)
+    .map(result => result[0])
+    .map(result => result.transcript)
+    .join("");
+
+  p.innerText = text;
+  texts.appendChild(p);
+
+  // Only speak when result is final
+  if (e.results[0].isFinal) {
+    speakText(text);
+    p = document.createElement("p");
+  }
+
+  console.log(text);
+});
+
+recognition.addEventListener("end", () => {
+  if (isListening) recognition.start(); // Keep listening
+});
+
+toggleBtn.addEventListener("click", () => {
+  if (!isListening) {
+    recognition.start();
+    isListening = true;
+    toggleBtn.textContent = "Stop Listening";
+  } else {
+    recognition.stop();
+    isListening = false;
+    toggleBtn.textContent = "Start Listening";
+  }
+});
+
+// Text-to-speech function
+function speakText(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  speechSynthesis.speak(utterance);
+}
