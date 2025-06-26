@@ -7,6 +7,7 @@ const server = http.createServer(app);
 const io = socketIO(server);
 
 //const hostname = '10.175.4.149'; 
+//const hostname = '192.168.1.1'; 
 const port = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
@@ -35,7 +36,14 @@ let Team_B = [];
 let Card_Holder = [];
 let guesser = [];
 
+
+
 let Team_Name = []
+
+var Team_Scores = {
+  Team_A_Points: 0,
+  Team_B_Points: 0
+};
 
 let timer = null
 let Current_Card = null;
@@ -79,9 +87,8 @@ function Card_RNG() {
 
 io.on("connection", (socket) => {
   
-  
   let assignedTeam;
-
+ 
   console.log("New user connected:", socket.id);
 
   function stoptimer() {
@@ -91,6 +98,7 @@ io.on("connection", (socket) => {
   };
 
   function assignTeam() {
+      redisplayscore(Team_Scores)
       if (Team_A.length <= Team_B.length) {
       Team_A.push(socket.id);
       socket.join("Team_A");
@@ -128,25 +136,90 @@ io.on("connection", (socket) => {
     }
   };
 
+  function redisplayscore(Team_Scores){ //this code is mainly here so that if a new player joins while in the middle of round or something they still get scores
+    var scores = Team_Scores
+    console.log("This is the current score after the test",scores,"Triggerd by:",socket.id)
+    io.to(socket.id).emit("Update_Points",scores)
+  }  
+
+  function IsThereATeamName(Team_Name) {
+    let Team_Name_length = Team_Name.length
+    console.log("Team Names are:", Team_Name)
+    if (Team_Name_length >0) {
+      io.emit("DONTDISPLAYTHENAMECHOOSING",Team_Name)
+      isEven(currentRound)
+
+    }
+  }
+
   function isEven(currentRound){
     if (currentRound%2 == 1){
       io.emit("Team_A_Turn" , currentRound)
       console.log("Current Round: ",currentRound)
-      return currentRound;
-    } 
-    if (currentRound%2 == 0) {
+      //return currentRound;
+    } else {
       io.emit("Team_B_Turn" , currentRound)
       console.log("Current Round: ",currentRound)
-      return currentRound;
+      //return currentRound;
     }
+    
   };
+
+  function Word_Checker(capitalizedWord) {
+    if (guesser.includes(socket.id)){
+        if (Current_Card.forbidden.includes(capitalizedWord)) { //make it so that it capitalizes the msg first
+          console.log(capitalizedWord, "Is a forbidden word")
+          socket.emit("Forbidden_Word_Used")
+          stoptimer();
+          currentRound++;
+          isEven(currentRound)
+          Current_Card = null
+          
+        }else if (Current_Card.keyword ==capitalizedWord) {
+          socket.emit("Correct_Answer");
+          //const playerTeam = Team_A.includes(socket.id) ? "Team_A" : "Team_B";
+          //scores[playerTeam] += 1;
+          currentRound++;
+          stoptimer()
+          isEven(currentRound)
+          Current_Card = null
+          //socket.emit("Score_Update", scores)
+        }
+    } else if (Card_Holder.includes(socket.id)){
+        if (Current_Card.forbidden.includes(capitalizedWord)) { //make it so that it capitalizes the msg first
+          console.log(capitalizedWord, "Is a forbidden word")
+          socket.emit("Forbidden_Word_Used")
+          stoptimer();
+          currentRound++;
+          isEven(currentRound)
+          Current_Card = null
+        }else if (Current_Card.keyword ==capitalizedWord) {
+          socket.emit("Said_Key_Word");
+          //const playerTeam = Team_A.includes(socket.id) ? "Team_A" : "Team_B";
+          //scores[playerTeam] += 1;
+          currentRound++;
+          stoptimer()
+          isEven(currentRound)
+          Current_Card = null
+          //socket.emit("Score_Update", scores)
+        }
+
+    }
+    io.to("Team_A").to("Team_B").emit("card_drawn",Current_Card)
+  }
   
-  assignTeam()
   
-  // team assignment based on number of players
+
+
+  assignTeam(Team_Scores)
+  //^^ team assignment based on number of players
   
+
+  
+  //checks to see if there is already a team name. if so, it'll make it so new players cant enter names
+  IsThereATeamName(Team_Name)
+
   isEven(currentRound)
-  
 
   console.log(`${socket.id} has joined ${assignedTeam}`);
 
@@ -176,17 +249,30 @@ io.on("connection", (socket) => {
     guesser_count: guesser.length
   };
 
-  socket.on("Team_A_Name", (Team_A) =>{
-    Team_Name.push(Team_A)
+  socket.on("Team_Chosen_Name", Team_Chosen_Name =>{
+    //Team_Name.push(Team_A)
+    
+    io.emit("Team_Names",(Team_Chosen_Name))
+    Team_Name = Team_Chosen_Name
+    console.log(Team_Name)
+    isEven(currentRound)
   })
 
-  socket.on("Team_B_Name", (Team_B) =>{
-    Team_Name.push(Team_B)
-  })
+  //socket.on("NameDecided",namedecided => {
+    
+  //})
+  //socket.on("Team_B_Name", (Team_B) =>{
+    //Team_Name.push(Team_B)
+    //socket.emit("Team_Names",(Team_Name))
+  //})
 
-  if (Team_Name.length == 2) {
-    socket.emit("Team_Names",(Team_Name))
-  }
+  //if (Team_Name.length == 2) {
+    //socket.emit("Team_Names",(Team_Name))
+  //}
+
+
+  
+  
 
   socket.on("draw_card" , () =>{
 
@@ -213,6 +299,41 @@ io.on("connection", (socket) => {
     console.log("Card Drawn")
   });
 
+  io.to("Team_A").to("Team_B").emit("card_drawn",Current_Card)
+
+  socket.on("transcribed_message", (text) => {
+    const msg = text
+    socket.broadcast.emit("chat_transcribed_message", msg); //sends to all other clients to be displayed 2
+    console.log(msg)
+    //replace these with a function later
+    //socket.emit("chat_message", msg); // Send to all except sender
+    //console.log("Current Card Keyword ==>", Current_Card.forbidden)
+    //console.log("TEST CHAT MESSAGE")
+    //console.log(Current_Card.forbidden)
+    //**remember to insert a try statement */
+    const chat_msg = msg.toLowerCase().split(" ")
+    console.log(chat_msg)
+    chat_msg.forEach(function (element) {
+      while (chat_msg.length > 0) {
+        let i =chat_msg[0].toLowerCase()
+        let firstLetter = i.charAt(0)
+        let firstLetterCap = firstLetter.toUpperCase()
+        let remainingLetters = i.slice(1)
+        const capitalizedWord = firstLetterCap + remainingLetters
+        i = chat_msg.shift();
+        try{
+          Word_Checker(capitalizedWord)
+        }catch{
+          console.log("No Card Drawn Yet")
+        }
+        
+      };
+
+    });
+
+  })
+
+
   // Handle chat messages
   socket.on("chat_message", (msg) => {
     console.log(`Message from ${socket.id}:`, msg);
@@ -229,57 +350,43 @@ io.on("connection", (socket) => {
         let firstLetterCap = firstLetter.toUpperCase()
         let remainingLetters = i.slice(1)
         const capitalizedWord = firstLetterCap + remainingLetters
+        console.log(capitalizedWord)
         i = chat_msg.shift();
-        if (Current_Card.forbidden.includes(capitalizedWord)) { //make it so that it capitalizes the msg first
-          socket.emit("Forbidden_Word_Used")
-          stoptimer();
-          currentRound++;
-          isEven(currentRound)
-          
-          
-          //console.log("Forbidden word Detected")
-        } else if (Current_Card.keyword.includes(capitalizedWord)) {
-          socket.emit("Correct_Answer");
-          //const playerTeam = Team_A.includes(socket.id) ? "Team_A" : "Team_B";
-          //scores[playerTeam] += 1;
-          currentRound++;
-          stoptimer()
-          isEven(currentRound)
-          //socket.emit("Score_Update", scores)
+        try {
+          Word_Checker(capitalizedWord)
+        } catch  {
+          console.log("No card drawn yet")
         }
-
-        
       };
 
     });
 
     socket.on("Points_Updated",(scores) => {
-      console.log(scores)
+      Team_Scores = Object.assign(scores)
+      console.log("Curent Scores for this round",Team_Scores)
+      console.log("Scores from the score variable", scores)
       io.to("Team_A").to("Team_B").emit("Update_Points",scores)
     })
 
-    //if (Current_Card.forbidden.includes(msg)) { //make it so that it capitalizes the msg first
-      //socket.emit("Forbidden_Word_Used")
-      //stoptimer()
-      //console.log("Forbidden word Detected")
-    //}else{
-      //console.log("No forbidden words used")
-    //} 
+    
+
+    console.log("Curent Scores for this round",Team_Scores)
   });
 
   //Does not work for now dont use this (Was supposed to be for mic implementation but it did not work will replace soon)
-  socket.on('transcriber', () =>{
-    socket.join("transcriber")
-    console.log("Transcriber id:", socket.id)
-  });
+  //depriciated code
+  //socket.on('transcriber', () =>{
+    //socket.join("transcriber")
+    //console.log("Transcriber id:", socket.id)
+  //});
 
-  socket.on("Mic_Pressed", () =>{
-    io.to("transcriber").emit('mic_pressed')
-  });
+  //socket.on("Mic_Pressed", () =>{
+    //io.to("transcriber").emit('mic_pressed')
+  //});
 
-  socket.on("Transcribed_Text", (text) => {
-    io.emit("Transcribed_message" , text)
-  });
+  //socket.on("Transcribed_Text", (text) => {
+    //io.emit("Transcribed_message" , text)
+  //});
   //end of do not use stuff
   
   // Handle disconnections
@@ -299,8 +406,12 @@ io.on("connection", (socket) => {
       Card_Holder_Count: Card_Holder.length,
       guesser_count: guesser.length
     };
+
     io.emit("Capacity", Team_Player_Count);
+    
   });
+  console.log("These socketids are in team A:",Team_A)
+  console.log("These socketids are in team B:",Team_B)
 });
 
 //const { spawn } = require("child_process");
@@ -332,4 +443,6 @@ server.listen(port);
 
 /////////////PROBLEMS BOARD//////////////
 //**The current timer is wonky cause if you click draw card multiple times it will cause the timer to loop. Just make sure the button is unable to be presesd once a round has started**//
+//Fixed ^^^
 //**Seperate the Teams into 2 groups based on the stuff that was discussed**//
+//Done ^^^
