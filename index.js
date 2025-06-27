@@ -167,7 +167,7 @@ io.on("connection", (socket) => {
 
   function Word_Checker(capitalizedWord) {
     if (guesser.includes(socket.id)){
-        if (Current_Card.forbidden.includes(capitalizedWord)) { //make it so that it capitalizes the msg first
+        if (Current_Card.forbidden == capitalizedWord) { //make it so that it capitalizes the msg first
           console.log(capitalizedWord, "Is a forbidden word")
           socket.emit("Forbidden_Word_Used")
           stoptimer();
@@ -175,7 +175,7 @@ io.on("connection", (socket) => {
           isEven(currentRound)
           Current_Card = null
           
-        }else if (Current_Card.keyword ==capitalizedWord) {
+        }else if (Current_Card.keyword == capitalizedWord) {
           socket.emit("Correct_Answer");
           //const playerTeam = Team_A.includes(socket.id) ? "Team_A" : "Team_B";
           //scores[playerTeam] += 1;
@@ -186,15 +186,16 @@ io.on("connection", (socket) => {
           //socket.emit("Score_Update", scores)
         }
     } else if (Card_Holder.includes(socket.id)){
-        if (Current_Card.forbidden.includes(capitalizedWord)) { //make it so that it capitalizes the msg first
+        if (Current_Card.forbidden == capitalizedWord) { //make it so that it capitalizes the msg first
           console.log(capitalizedWord, "Is a forbidden word")
           socket.emit("Forbidden_Word_Used")
           stoptimer();
           currentRound++;
           isEven(currentRound)
           Current_Card = null
-        }else if (Current_Card.keyword ==capitalizedWord) {
+        }else if (Current_Card.keyword == capitalizedWord) {
           socket.emit("Said_Key_Word");
+          console.log(socket.id,"Said the key word. Word said was:",capitalizedWord)
           //const playerTeam = Team_A.includes(socket.id) ? "Team_A" : "Team_B";
           //scores[playerTeam] += 1;
           currentRound++;
@@ -222,7 +223,8 @@ io.on("connection", (socket) => {
   isEven(currentRound)
 
   console.log(`${socket.id} has joined ${assignedTeam}`);
-
+  console.log("These sockets are in the Card_Holder Roll:",Card_Holder)
+  console.log("These sockets are in the Card_Holder Roll:",guesser)
   // assigning roles based on first player of each team ## change this to be random after round feature is implemented
   //if (Team_A.length > 0) {
     
@@ -322,6 +324,7 @@ io.on("connection", (socket) => {
         const capitalizedWord = firstLetterCap + remainingLetters
         i = chat_msg.shift();
         try{
+          console.log("Capitalized Word for transcribe: ",capitalizedWord)
           Word_Checker(capitalizedWord)
         }catch{
           console.log("No Card Drawn Yet")
@@ -365,7 +368,7 @@ io.on("connection", (socket) => {
       Team_Scores = Object.assign(scores)
       console.log("Curent Scores for this round",Team_Scores)
       console.log("Scores from the score variable", scores)
-      io.to("Team_A").to("Team_B").emit("Update_Points",scores)
+      io.emit("Update_Points",scores)
     })
 
     

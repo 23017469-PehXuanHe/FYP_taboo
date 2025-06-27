@@ -248,7 +248,7 @@
     document.getElementById("gameArea").style.display = "block";
     document.getElementById("scoreA").innerText = Team_Name_List[0]
     document.getElementById("scoreB").innerText = Team_Name_List[1]
-    console.log("THe")
+  
   })
   //function updateScores() {
     //document.getElementById("scoreA").nextSibling.textContent = `: ${score.A}`;
@@ -322,7 +322,11 @@
     console.log("Voice message has been transcribed")
   }
 
-
+  //function turnoffmic() {
+    
+    //recognition.stop();
+    //console.log("Should be off")
+  //}
  
     socket.on("Timer",(secondsLeft) =>{
       document.getElementById("timer").textContent = secondsLeft;
@@ -400,24 +404,14 @@
             recognition.start();
           } catch (error) {
             console.log("Process already running")
+            //recognition.abort();
           }
           
         }
           
       });
 
-      recognition.addEventListener("result", (e) => {
-          //texts.appendChild(p);
-          const text = Array.from(e.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
-          .join("");
-          const msg = text
-          
-          socket.emit("transcribed_message", (msg)) //sends to the server
-          console.log(text);
-          rendervoicemessage(text); //first display is here. It displays on users screen 1
-      });
+      
 
       if (isOn === true) {
         
@@ -432,19 +426,34 @@
         //p.innerText = text;
         
 
-
         
 
         recognition.start();
         
       } else {
         document.getElementById("Mic_Button").textContent = "Off"
-
+        
+        
+        //recognition.stop();
         recognition.stop();
       }
 
+      
+
     })
 
+    recognition.addEventListener("result", (e) => {
+          //texts.appendChild(p);
+          const text = Array.from(e.results)
+          .map((result) => result[0])
+          .map((result) => result.transcript)
+          .join("");
+          const msg = text
+          
+          socket.emit("transcribed_message", (msg)) //sends to the server
+          console.log(text);
+          rendervoicemessage(text); //first display is here. It displays on users screen 1
+      });
 
  
     socket.on("role_assigned", (role) => {
@@ -470,10 +479,12 @@
       My_Team = assignedTeam
       if (assignedTeam == "Team_A") {
         Team.textContent = "Team_A"
+        My_Team = "Team_A"
       }
  
       if (assignedTeam == "Team_B") {
         Team.textContent = "Team_B"
+        My_Team = "Team_B"
       }
     })
  
@@ -503,17 +514,19 @@
       if (My_Team == "Team_A") { //BIG PRIOIRTY BUG HAVE TO REDO THE POINTS SYSTEM AND TEAM SYSTEM(Found a workaround)
         scores.Team_A_Points ++
         console.log("Team A + 1")
+        console.log("Current Score list var from A:",scores)
         
-        socket.emit("Points_Updated",(scores))
+        socket.emit("Points_Updated",scores)
         
       } 
       
       if (My_Team == "Team_B") {
         scores.Team_B_Points ++
+        console.log("Current Score list var from B:",scores)
         console.log("Team B + 1")
-        console.log(scores)
+        //console.log(scores)
         
-        socket.emit("Points_Updated",(scores))
+        socket.emit("Points_Updated",scores)
       }
       
     })
@@ -530,7 +543,7 @@
       console.log("Updated scores :",scores)
       document.getElementById("scoreTeamA").textContent = scores.Team_A_Points
       document.getElementById("scoreTeamB").textContent = scores.Team_B_Points
-       
+      
       //document.getElementById("cardDisplay").innerHTML = originalhtml
     })
     //socket.on("Score_Update", (scores) => {
@@ -548,8 +561,16 @@
       
       if (My_Team === "Team_A") {
         document.getElementById("chatBtn").disabled = false
+        toggleButton.disabled = false
       } else if (My_Team === "Team_B") {
         document.getElementById("chatBtn").disabled = true
+        
+        if (isOn === true) {
+          document.getElementById("Mic_Button").click()
+          recognition.abort()
+          
+        }
+        toggleButton.disabled = true
         //document.getElementById("cardDisplay").innerText = "Team A's Turn"
       }
       
@@ -573,8 +594,15 @@
 
       if (My_Team === "Team_B") {
         document.getElementById("chatBtn").disabled = false
+        toggleButton.disabled=false
       } else if (My_Team === "Team_A") {
         document.getElementById("chatBtn").disabled = true
+        if (isOn === true) {
+          document.getElementById("Mic_Button").click()
+          recognition.abort()
+          
+        }
+        toggleButton.disabled = true
         //document.getElementById("cardDisplay").innerText = "Team B's Turn"
       }
       
