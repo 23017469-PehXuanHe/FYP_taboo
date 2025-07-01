@@ -162,38 +162,38 @@
 
  
 <script>
-  // things to note: currently not using the team name system cause i need to discuss what to do about the join logic.
   socket = io();
  
-  var My_Role;
-  var My_Team;
-  //var Team_A_Name = "Team A"
-  //var Team_B_Name = "Team B"
-  var currentTurn;
-  
-  var Team_Name_List=[]
+  var My_Role; //This is the client's role. Mostly used in displaying the role and for some game logic.
+  var My_Team; //This is the clients custom team name. Mostly used in displaying team name and some game logic.
+  var currentTurn; // This is for client side current round. Mostly used in displaying Turn and some game logic.
+   
+  var Team_Name_List=[]//This is the a list of Teams. Used to keep track of team names.
 
-  let scores = {
+  let scores = { //This is the code for the Client side team score. If a round end condition is met, the score will be sent to the server and returned to all clients to keep everything up to date.
     Team_A_Points: 0,
     Team_B_Points: 0
   };
 
-  let isOn = false
-  let namedecided = false
+  let isOn = false //Used to check if the button should be on or off
+  let namedecided = false //Check to see if A name has been decided.
 
-  const originalhtml = document.getElementById("cardDisplay").innerHTML
+  const originalhtml = document.getElementById("cardDisplay").innerHTML //Used to retain original html code so that after each round, The holder's display can be reset.
 
-  document.getElementById("chatBtn").disabled = true
-  const drawBtn = document.getElementById("drawBtn")
+  document.getElementById("chatBtn").disabled = true //Initial disabling of the chatBtn since chatting depends on whos turn it is. Might change later.
+  const drawBtn = document.getElementById("drawBtn") //Not sure if used in anything. Pretty sure its used to disbale the draw btn after a round ends
   
 
-  const toggleButton = document.getElementById("Mic_Button")
+  const toggleButton = document.getElementById("Mic_Button") // Used to refer to the Mic button. Unsure if used anywhere in the code.
 
-  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;//Used to initiate the speech to text function
 
-  const recognition = new SpeechRecognition();
 
-  recognition.interimResults = false;
+  const recognition = new SpeechRecognition();//Used to initiate a new instance of the speech recognition software
+
+  
+
+  recognition.interimResults = false; //Used to make it so the software returns the complete speech of a person.
 
 
   function startGame() {
@@ -202,7 +202,6 @@
     if (a) var Team_A = a;
     if (b) var Team_B = b;
     console.log(typeof(a))
-    //Team_A_Name = Team_A
     if (a === "" || b === "") {
       console.log("No name was given for either A or B or both so default name was used")
       document.getElementById("scoreA").innerText = "Team A:"
@@ -210,34 +209,20 @@
       let Default_A = "Team A"
       let Default_B = "Team B"
       relayTeamNames(Default_A,Default_B)
-      //namedecided = true
-      //console.log(namedecided)
-      //socket.emit("NamesDecided",namedecided)
+      //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
     } else {
       relayTeamNames(a,b)
       console.log("TEAM A WAS GIVEN A NAME")
-       //sends the name of team a and team b into the server
-      //namedecided = true
-      //console.log(namedecided)
-      //socket.emit("NamesDecided",namedecided)
+      //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
     }
 
-    console.log(a)
-    
-
-    //Team_B_Name = Team_B
-    
-    ; //change this to use the turn based logic
-
-    //allCards = getAllCards();
-    //availableCards = [...allCards];
+    console.log(a);
     
     document.getElementById("setupScreen").style.display = "none";
     document.getElementById("gameArea").style.display = "block";
     console.log("Button Pressed")
 
-      //updateScores();
-      //showRandomCard();
+      //Some of effy's code to call the cards locally was here. deleted due to change in system.
   }
 
 
@@ -250,10 +235,7 @@
     document.getElementById("scoreB").innerText = Team_Name_List[1]
   
   })
-  //function updateScores() {
-    //document.getElementById("scoreA").nextSibling.textContent = `: ${score.A}`;
-    //document.getElementById("scoreB").nextSibling.textContent = `: ${score.B}`;
-  //}
+  //function UpdateScores was here to update the score. Pointless and redundant due to new point system. Deleted.
  
   function drawCard() {
     socket.emit("draw_card")
@@ -268,6 +250,7 @@
   
   function relayTeamNames(a,b) {
     let team_chosen_name = [a,b]
+    console.log("Team Name Relay Function Triggered Names are:",team_chosen_name)
     socket.emit("Team_Chosen_Name", (team_chosen_name))
   }
    
@@ -284,7 +267,6 @@
  
     //client side message to server
     socket.emit("chat_message", msg);
-    //chatInput.value = "";
     console.log("Chat has been emitted from client end")
   };
 
@@ -302,7 +284,6 @@
     input.value = "";
  
     //client side message to server
-    //chatInput.value = "";
     console.log("Voice message has been transcribed")
   }
 
@@ -318,15 +299,10 @@
     input.value = "";
  
     //client side message to server
-    //chatInput.value = "";
     console.log("Voice message has been transcribed")
   }
 
-  //function turnoffmic() {
-    
-    //recognition.stop();
-    //console.log("Should be off")
-  //}
+  //function turnoffmic was here for the old mic system. Replaced and deleted. Check github for old version (Old version was not implemented and will not work)
  
     socket.on("Timer",(secondsLeft) =>{
       document.getElementById("timer").textContent = secondsLeft;
@@ -342,7 +318,7 @@
           Team_Name_List.push(Team_Name[1])
           document.getElementById("setupScreen").style.display = "none"
           document.getElementById("gameArea").style.display = "block";
-          //document.getElementById("teamName").textContent = Team_Name[0];
+          //code was here to display team. Replaced and deleted.
         } catch {
           document.getElementById("scoreA").textContent = "Team A"
           document.getElementById("scoreB").textContent = "Team B"
@@ -350,7 +326,7 @@
           Team_Name_List.push("Team B")
           document.getElementById("setupScreen").style.display = "none"
           document.getElementById("gameArea").style.display = "block";
-          //document.getElementById("teamName").textContent = Team_Name[0];
+          //code was here to display team. Replaced and deleted.
         }
       }
       
@@ -360,7 +336,7 @@
  
     socket.on("Round_End", () =>{
       alert("Round Ended")
-      //document.getElementById("drawBtn").disabled = true;
+      //code was here that was used to disable the draw buton.Redundant and deleted.
     })
    
     socket.on("card_drawn", (card) =>{
@@ -372,24 +348,11 @@
         <ul>${card.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
         `;
         console.log("Sucess")
-        //document.getElementById("keyword").textContent = card.keyword;
-        //const list = document.getElementById("forbiddenList");
-        //list.innerHTML ="";
-        //card.forbidden.forEach(word => {
-          //const li = document.createElement("li")
-          //li.textContent = word;
-          //list.appendChild(li)
-        //});
+        //Code was here to display the chosen card. Code replaced with effy's code since it works. For old code check github.
       } else if (My_Role== "guesser") {
           console.log("This line was triggered")
           document.getElementById("cardDisplay").textContent="Guess the Card!"
-          //const list = document.getElementById("forbiddenList");
-          //list.innerHTML ="";
-          //card.forbidden.forEach(word => {
-            //const li = document.createElement("li")
-            //li.textContent = word;
-            //list.appendChild(li)
-          //});
+          //Code was here that was used to append the entire card to the guessers card display area. Deleted because of way game works. For old code check github.
       };
     
     });
@@ -402,9 +365,10 @@
         if (isOn === true) {
           try {
             recognition.start();
+
           } catch (error) {
             console.log("Process already running")
-            //recognition.abort();
+
           }
           
         }
@@ -415,26 +379,15 @@
 
       if (isOn === true) {
         
-
-        //const texts = document.querySelector('.texts');
-
         document.getElementById("Mic_Button").textContent = "On"
-        //let p = document.createElement("p");
 
-        
-
-        //p.innerText = text;
-        
-
-        
+        //Code here was used here to append the voice logs to the chat. Didnt work
 
         recognition.start();
         
       } else {
         document.getElementById("Mic_Button").textContent = "Off"
-        
-        
-        //recognition.stop();
+      
         recognition.stop();
       }
 
@@ -443,7 +396,7 @@
     })
 
     recognition.addEventListener("result", (e) => {
-          //texts.appendChild(p);
+          //Some code was here that appended the results 
           const text = Array.from(e.results)
           .map((result) => result[0])
           .map((result) => result.transcript)
@@ -513,9 +466,10 @@
       chatBtn.disabled = true;
       if (My_Team == "Team_A") { //BIG PRIOIRTY BUG HAVE TO REDO THE POINTS SYSTEM AND TEAM SYSTEM(Found a workaround)
         scores.Team_A_Points ++
+
         console.log("Team A + 1")
         console.log("Current Score list var from A:",scores)
-        
+      
         socket.emit("Points_Updated",scores)
         
       } 
@@ -524,6 +478,7 @@
         scores.Team_B_Points ++
         console.log("Current Score list var from B:",scores)
         console.log("Team B + 1")
+        //Logs scores. was replaced with the above code to debugging more cleaner
         //console.log(scores)
         
         socket.emit("Points_Updated",scores)
@@ -534,7 +489,7 @@
     socket.on("Said_Key_Word", (Forbidden_Word_Used) => {
       console.log("Card_Holder said key word")
       alert("U said a key word")
-      //document.getElementById("drawBtn").disabled = false;
+      //Code was here to disble the draw btn if a card holder said the keyword. Didnt work. was deleted
       
     })
     
@@ -543,14 +498,11 @@
       console.log("Updated scores :",scores)
       document.getElementById("scoreTeamA").textContent = scores.Team_A_Points
       document.getElementById("scoreTeamB").textContent = scores.Team_B_Points
-      
+      //Code below was used to see if i could push the current state of the original html page\\
       //document.getElementById("cardDisplay").innerHTML = originalhtml
     })
-    //socket.on("Score_Update", (scores) => {
-    //document.getElementById("scoreTeamA").textContent = `Team A: ${scores.Team_A}`;
-    //document.getElementById("scoreTeamB").textContent = `Team B: ${scores.Team_B}`;
-    //});
- 
+    //Code was here to update scores. Replaced by the above code\\
+
     socket.on("Team_A_Turn", (currentRound) => {
       document.getElementById("cardDisplay").innerText=originalhtml
       console.log(currentRound)
@@ -644,6 +596,7 @@
   </body>
 </html>
 
+<!--Effy's Original code begins here--->
 <!--<script>
   //socket = io();
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Border Animation</title>
+  <link rel="stylesheet" href="style.css">
+  <audio id="raining-amb" src="Rain.mp3"></audio>
+
+  <script>
+    window.onload = function () {
+      const rainingAmb = document.getElementById("raining-amb");
+
+      // set volume 70%
+      rainingAmb.volume = 0.7;
+
+      rainingAmb.play();
+    }
+  </script>
+</head>
+<body>
+  <div class="rain">
+    <!-- Generate raindrops randomly -->
+    <script>
+      for (let i = 0; i < 100; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'drop';
+        drop.style.left = Math.random() * 100 + 'vw';
+        drop.style.animationDuration = (Math.random() * 1 + 0.5) + 's';
+        drop.style.animationDelay = Math.random() * 5 + 's';
+        document.querySelector('.rain').appendChild(drop);
+      }
+    </script>
+  </div>
+
+  <div class="card">
+    <h1>Defeat...😔</h1>
+    <p>Better Luck Next Time!</p>
+  </div>
+</body>
+</html>
