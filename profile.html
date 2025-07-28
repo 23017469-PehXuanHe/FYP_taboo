@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .profile-box {
+      background-color: #2d2d44;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+      width: 300px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #ffd369;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 8px;
+      width: 80%;
+      margin-top: 10px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #2b2b3d;
+      color: #fff;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #357ab7;
+    }
+
+    #greeting {
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .btn-danger {
+      background-color: #ff4a4a;
+    }
+
+    .btn-danger:hover {
+      background-color: #b34141;
+    }
+
+    .btn-success {
+      background-color: #4caf50;
+    }
+
+    .btn-success:hover {
+      background-color: #3e8e41;
+    }
+
+    #joinGame {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #59e24a;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="profile-box">
+    <h1>Profile</h1>
+    <div id="greeting"></div>
+
+    <input type="text" id="editName" placeholder="Edit name" />
+
+    <div id="statsBox" style="margin-top: 20px;">
+      <h3 style="color: #ffd369;">Game Stats</h3>
+      <p id="gamesPlayed">Games Played: Loading...</p>
+      <p id="wins">Wins: Loading...</p>
+      <p id="losses">Losses: Loading...</p>
+    </div>
+
+    <button onclick="joinGame()" id="joinGame">Join Game</button>
+    <button class="btn-danger" onclick="logout()">Logout</button>
+    <div id="adminMenu"></div>
+  </div>
+
+
+  <script>
+    let user = JSON.parse(localStorage.getItem('user')) || {};
+
+    function loadProfile() {
+      const greeting = document.getElementById('greeting');
+      const input = document.getElementById('editName');
+      const adminMenu = document.getElementById('adminMenu');
+
+      if (!user.username) {
+        window.location.href = 'login.html'; // Redirect if not logged in
+        return;
+      }
+
+      greeting.innerText = `Hello, ${user.username}`;
+      input.value = user.username;
+
+      // Show "Card Generation Menu" button only for admins
+      if (user.role === 'admin') {
+        adminMenu.innerHTML = `
+          <button class="btn-success" onclick="goToCardMenu()">Card Generation Menu</button>
+        `;
+      }
+    }
+
+
+    function joinGame() {
+      let user = JSON.parse(localStorage.getItem('user')) || {};
+      addEventListener("click", (joinGame) => {
+        window.location.href = "taboo2.html"
+      })
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+
+    function goToCardMenu() {
+      window.location.href = 'gencards.html';
+    }
+
+    function loadStats() {
+      const username = user.username;
+
+      fetch("/api/stats",{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username: user.username })
+      })
+        .then(res => res.json())
+        .then(stats => {
+          document.getElementById('gamesPlayed').textContent = `Games Played: ${stats.games_played || 0}`;
+          document.getElementById('wins').textContent = `Wins: ${stats.wins || 0}`;
+          document.getElementById('losses').textContent = `Losses: ${stats.losses || 0}`;
+        })
+        .catch(err => {
+          console.error("Failed to load stats:", err);
+          document.getElementById('gamesPlayed').textContent = "Games Played: N/A";
+          document.getElementById('wins').textContent = "Wins: N/A";
+          document.getElementById('losses').textContent = "Losses: N/A";
+        });
+    }
+    
+    window.onload = function() {
+      loadProfile();
+      loadStats();
+    }
+
+  </script>
+</body>
+
+</html>

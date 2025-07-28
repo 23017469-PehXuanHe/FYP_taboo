@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,6 +38,13 @@
       border-radius: 30px;
       cursor: pointer;
       margin: 10px;
+    }
+
+    button:disabled {
+      background-color: gray;
+      color: #888;
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     button:hover {
@@ -113,211 +121,449 @@
       background: #000000;
       margin-bottom: 10px;
     }
-  </style>
-</head>
-<body>
 
-<h1>🎮 Taboo Game</h1>
-
-<div id="setupScreen">
-  <h2>Enter Team Names</h2>
-  <input id="teamAInput" placeholder="Team A Name" />
-  <input id="teamBInput" placeholder="Team B Name" />
-  <br />
-  <button onclick=startGame()>Start Game</button>
-</div>
-
-<div id="gameArea">
-  <h1>You are in <p1 id="Team"></p1>
-  <h1>Taboo Game: You are a <p1 id="roleDisplay"></p1></h1>
-  <h2>Round:<span id="RoundDisplay">1</span>
-  <div id="cardDisplay" class="card">Loading card...</div>
-
-  <div style="margin: 20px auto;">
-    <input id="guessInput" type="text" placeholder="Type your guess..." />
-    <button id="chatBtn" onclick="sendMessage()">Chat</button> <button id="Mic_Button">OFF</button>
-    <p id="guessFeedback"></p>
-  </div>
-
-  <div class="scoreboard">
-    <p>Turn: <span id="teamName"> Team A </span></p>
-    <p><span id="scoreA">Team A:</span> <span id="scoreTeamA">0</span> | <span id="scoreB">Team B:</span> <span id="scoreTeamB">0</span></p>
-    <p id="timer">⏳ Time left: 60s</p>
-  </div>
-  <div id="chatLog"></div>
-  <div id="winMessage"></div>
-
-  <button id="drawBtn" onclick="drawCard()">Draw Card</button>
-  <button id="btnCorrect" onclick="correctGuess()">✔ Got It!</button> <!--Kinda Pointless ???-->
-  <button id="btnSkip" onclick="nextTurn()">⏭ Skip</button> <!--Implement this feature later-->
-  <button id="btnRestart" onclick="restartGame()">🔁 Restart Game</button> <!-- Discuss before implementation-->
-</div>
-
-<a href="/" class="btn-back">⬅ Back to Home</a>
-
-<script src="/socket.io/socket.io.js">
-    const socket = io();
-    
-</script>
-
- 
-<script>
-  socket = io();
- 
-  var My_Role; //This is the client's role. Mostly used in displaying the role and for some game logic.
-  var My_Team; //This is the clients custom team name. Mostly used in displaying team name and some game logic.
-  var currentTurn; // This is for client side current round. Mostly used in displaying Turn and some game logic.
-   
-  var Team_Name_List=[]//This is the a list of Teams. Used to keep track of team names.
-
-  let scores = { //This is the code for the Client side team score. If a round end condition is met, the score will be sent to the server and returned to all clients to keep everything up to date.
-    Team_A_Points: 0,
-    Team_B_Points: 0
-  };
-
-  let isOn = false //Used to check if the button should be on or off
-  let namedecided = false //Check to see if A name has been decided.
-
-  const originalhtml = document.getElementById("cardDisplay").innerHTML //Used to retain original html code so that after each round, The holder's display can be reset.
-
-  document.getElementById("chatBtn").disabled = true //Initial disabling of the chatBtn since chatting depends on whos turn it is. Might change later.
-  const drawBtn = document.getElementById("drawBtn") //Not sure if used in anything. Pretty sure its used to disbale the draw btn after a round ends
-  
-
-  const toggleButton = document.getElementById("Mic_Button") // Used to refer to the Mic button. Unsure if used anywhere in the code.
-
-  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;//Used to initiate the speech to text function
-
-
-  const recognition = new SpeechRecognition();//Used to initiate a new instance of the speech recognition software
-
-  
-
-  recognition.interimResults = false; //Used to make it so the software returns the complete speech of a person.
-
-
-  function startGame() {
-    const a = document.getElementById("teamAInput").value.trim();
-    const b = document.getElementById("teamBInput").value.trim();
-    if (a) var Team_A = a;
-    if (b) var Team_B = b;
-    console.log(typeof(a))
-    if (a === "" || b === "") {
-      console.log("No name was given for either A or B or both so default name was used")
-      document.getElementById("scoreA").innerText = "Team A:"
-      document.getElementById("scoreB").innerText = "Team B:"
-      let Default_A = "Team A"
-      let Default_B = "Team B"
-      relayTeamNames(Default_A,Default_B)
-      //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
-    } else {
-      relayTeamNames(a,b)
-      console.log("TEAM A WAS GIVEN A NAME")
-      //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
+    #scoreA {
+      color: red;
     }
 
-    console.log(a);
-    
-    document.getElementById("setupScreen").style.display = "none";
-    document.getElementById("gameArea").style.display = "block";
-    console.log("Button Pressed")
+    #scoreB {
+      color: blue;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🎮 Taboo Game</h1>
+
+  <div id="setupScreen">
+    <h2>Enter Team Names</h2>
+    <input id="teamAInput" placeholder="Team A Name" />
+    <input id="teamBInput" placeholder="Team B Name" />
+    <br />
+    <button onclick=startGame()>Start Game</button>
+  </div>
+
+  <div id="gameArea">
+    <h1>You are in <p1 id="Team"></p1>
+      <h1>Taboo Game: You are a <span id="roleDisplay"></span></h1>
+      <h2>Round:<span id="RoundDisplay">1</span>
+        <div id="cardDisplay" class="card">Draw A card</div>
+
+
+
+        <div class="scoreboard">
+          <h2>Turn: <span id="teamName"> Team A </span></h2>
+          <p><span id="scoreA">Team A:</span> <span id="scoreTeamA">0</span> | <span id="scoreB">Team B:</span> <span
+              id="scoreTeamB">0</span></p>
+          <p id="timer">⏳ Time left: 60s</p>
+        </div>
+        <div id="chatLog"></div>
+        <div id="winMessage"></div>
+
+        <div style="margin: 20px auto;">
+          <input id="guessInput" type="text" placeholder="Type your guess..." />
+          <button id="chatBtn" onclick="sendMessage()">Chat</button> <button id="Mic_Button">Record</button>
+          <p id="guessFeedback"></p>
+        </div>
+        <button id="drawBtn" onclick="drawCard()" hidden>Draw Card</button>
+        <div id="Not_enough_players">
+          <p>Not Enough Players...
+            <span id="Player_Count"></span>/4
+          </p>
+        </div>
+
+        <!--<button id="btnCorrect" onclick="correctGuess()">✔ Got It!</button> Kinda Pointless ???-->
+        <!--<button id="btnSkip" onclick="nextTurn()">⏭ Skip</button> Implement this feature later-->
+        <!--<button id="btnRestart" onclick="restartGame()">🔁 Restart Game</button> Discuss before implementation-->
+  </div>
+
+  <a href="/" class="btn-back">⬅ Back to Home</a>
+
+  <script src="/socket.io/socket.io.js">
+    const socket = io();
+
+  </script>
+
+
+  <script>
+    socket = io();
+
+    socket.on('connect', function () {
+      socket.emit('join', location.pathname);
+    });
+    var My_Role; //This is the client's role. Mostly used in displaying the role and for some game logic.
+    var My_Team; //This is the clients custom team name. Mostly used in displaying team name and some game logic.
+    var currentTurn; // This is for client side current round. Mostly used in displaying Turn and some game logic.
+    var round;
+    var Team_Name_List = []//This is the a list of Teams. Used to keep track of team names.
+    var client_side_round = 1;
+    let client_card = {}
+    let backup_client_card = {}
+    const name = isUserSignedIn()
+    let scores = { //This is the code for the Client side team score. If a round end condition is met, the score will be sent to the server and returned to all clients to keep everything up to date.
+      Team_A_Points: 0,
+      Team_B_Points: 0
+    };
+
+    let isOn = false //Used to check if the button should be on or off
+    let namedecided = false //Check to see if A name has been decided.
+
+    const originalhtml = document.getElementById("cardDisplay").innerHTML //Used to retain original html code so that after each round, The holder's display can be reset.
+
+    document.getElementById("chatBtn").disabled = true //Initial disabling of the chatBtn since chatting depends on whos turn it is. Might change later.
+    const drawBtn = document.getElementById("drawBtn") //Not sure if used in anything. Pretty sure its used to disbale the draw btn after a round ends
+
+
+    const toggleButton = document.getElementById("Mic_Button") // Used to refer to the Mic button. Unsure if used anywhere in the code.
+
+
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;//Used to initiate the speech to text function
+
+    try {
+      recognition = new SpeechRecognition();//Used to initiate a new instance of the speech recognition software
+
+      //recognition.continuous = true;
+      recognition.interimResults = false; //Used to make it so the software returns the complete speech of a person.
+      console.log("Recognition library can be used")
+    } catch {
+      document.getElementById("Mic_Button").style.display = "none";
+      console.log("User Isnt Using Chrome so mic was disabled")
+
+    }
+
+    function isUserSignedIn() {
+      console.log("LocalStorage Length", localStorage.length)
+      if (localStorage.length != 0) {
+        const name = JSON.parse(localStorage.getItem(('user'))) || {}
+        const USERNAME = name.username
+        return USERNAME
+      } else if (localStorage.length === 0) {
+        const rng_num = Math.round(Math.random() * 1000) //Note this might cause the GUEST number to randomly change
+        const USERNAME = `Guest${rng_num}`
+        return USERNAME
+      }
+    }
+
+    function startGame() {
+      const a = document.getElementById("teamAInput").value.trim();
+      const b = document.getElementById("teamBInput").value.trim();
+      if (a) var Team_A = a;
+      if (b) var Team_B = b;
+      console.log(typeof (a))
+      if (a === "" || b === "") {
+        console.log("No name was given for either A or B or both so default name was used")
+        document.getElementById("scoreA").innerText = "Team A:"
+        document.getElementById("scoreA").style.color = "Red"
+        document.getElementById("scoreB").innerText = "Team B:"
+        document.getElementById("scoreB").style.color = "Blue"
+        let Default_A = "Team A"
+        let Default_B = "Team B"
+        relayTeamNames(Default_A, Default_B)
+        //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
+      } else {
+        relayTeamNames(a, b)
+        console.log("TEAM A WAS GIVEN A NAME")
+        //Some code was here to determine to test if names were decided. Redundant and replaced. Deleted.
+      }
+
+      console.log(a);
+
+      document.getElementById("setupScreen").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+      console.log("Button Pressed")
+
 
       //Some of effy's code to call the cards locally was here. deleted due to change in system.
-  }
+    }
 
 
-  socket.on("DONTDISPLAYTHENAMECHOOSING", (Team_Name) => {
-    Team_Name_List=Team_Name
-    console.log("Team names have already been chosen",Team_Name_List)
-    document.getElementById("setupScreen").style.display = "none"
-    document.getElementById("gameArea").style.display = "block";
-    document.getElementById("scoreA").innerText = Team_Name_List[0]
-    document.getElementById("scoreB").innerText = Team_Name_List[1]
+    socket.once("DONTDISPLAYTHENAMECHOOSING", (Team_Name) => {
+      Team_Name_List = Team_Name
+      console.log("Team names have already been chosen", Team_Name_List)
+      document.getElementById("setupScreen").style.display = "none"
+      document.getElementById("gameArea").style.display = "block";
+      document.getElementById("scoreA").innerText = Team_Name_List[0]
+      document.getElementById("scoreB").innerText = Team_Name_List[1]
+      document.getElementById("scoreA").style.color = "Red"
+      document.getElementById("scoreB").style.color = "Blue"
+      //Teamturnmessage()
+    })
+
+    socket.once("Display_Custom_Name", (Team_Name) => {
+      displayTeamNames()
+    })
+    //function UpdateScores was here to update the score. Pointless and redundant due to new point system. Deleted.
+
+    function drawCard() {
+      socket.emit("draw_card")
+      console.log("line 81")
+      drawBtn.disabled = true;
+    };
+
+    function buzz() {
+      alert("🚨 Buzzer Pressed! The guesser said a forbidden word!");
+    };
+
+    function relayTeamNames(a, b) {
+      let team_chosen_name = [a, b]
+      console.log("Team Name Relay Function Triggered Names are:", team_chosen_name)
+      socket.emit("Team_Chosen_Name", (team_chosen_name))
+    }
+
+    function displayTeamNames() {
+      console.log("DisplayTeamNames triggered")
+      if (My_Team === "Team_A") {
+        Team.textContent = Team_Name_List[0]
+        console.log("THe THING WAS TRIGGERED")
+      } else if (My_Team === "Team_B") {
+        Team.textContent = Team_Name_List[1]
+      }
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("guessInput");
+      const msg = input.value.trim();
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = "👤(You) " + msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      //client side message to server
+      socket.emit("chat_message", [name, msg]);
+      console.log("Chat has been emitted from client end")
+    };
+
+    function teamandrolesannouncementmessage(X) {
+      //Used to render the client side messages before sending to the server
+      if (My_Team === "Team_A") {
+        console.log("Team and roles:",X)
+        const msg = `You are a ${My_Role} On ${X}`
+        if (msg === "") return;
+        const log = document.getElementById("chatLog");
+        const newMsg = document.createElement("div");
+        newMsg.style.color = "#00ff93"
+        newMsg.textContent = msg;
+        log.appendChild(newMsg);
+        log.scrollTop = log.scrollHeight;
+        
+
+        console.log("Team and role messages has been sent")
+      } else if (My_Team === "Team_B") {
+        console.log("Team and roles:",X)
+        const msg = `You are a ${My_Role} On ${X}`
+        if (msg === "") return;
+        const log = document.getElementById("chatLog");
+        const newMsg = document.createElement("div");
+        newMsg.style.color = "#00ff93"
+        newMsg.textContent = msg;
+        log.appendChild(newMsg);
+        log.scrollTop = log.scrollHeight;
   
-  })
-  //function UpdateScores was here to update the score. Pointless and redundant due to new point system. Deleted.
- 
-  function drawCard() {
-    socket.emit("draw_card")
-    console.log("line 81")
-    drawBtn.disabled = true;
 
-  };
- 
-  function buzz() {
-    alert("🚨 Buzzer Pressed! The guesser said a forbidden word!");
-  };
-  
-  function relayTeamNames(a,b) {
-    let team_chosen_name = [a,b]
-    console.log("Team Name Relay Function Triggered Names are:",team_chosen_name)
-    socket.emit("Team_Chosen_Name", (team_chosen_name))
-  }
-   
-  function sendMessage() {
-    const input = document.getElementById("guessInput");
-    const msg = input.value.trim();
-    if (msg === "") return;
-    const log = document.getElementById("chatLog");
-    const newMsg = document.createElement("div");
-    newMsg.textContent = "👤 " + msg;
-    log.appendChild(newMsg);
-    log.scrollTop = log.scrollHeight;
-    input.value = "";
- 
-    //client side message to server
-    socket.emit("chat_message", msg);
-    console.log("Chat has been emitted from client end")
-  };
+        console.log("Team and role messages has been sent")
+      }
 
-  
- 
-  function rendervoicemessage(X) {
-    const input = X
-    const msg = input
-    if (msg === "") return;
-    const log = document.getElementById("chatLog");
-    const newMsg = document.createElement("div");
-    newMsg.textContent = "👤(transcribed) " + msg;
-    log.appendChild(newMsg);
-    log.scrollTop = log.scrollHeight;
-    input.value = "";
- 
-    //client side message to server
-    console.log("Voice message has been transcribed")
-  }
+    }
 
-  function rendervoicemessageothers(X) {
-    const input = X
-    const msg = input
-    if (msg === "") return;
-    const log = document.getElementById("chatLog");
-    const newMsg = document.createElement("div");
-    newMsg.textContent = "Others: (transcribed)" + msg;
-    log.appendChild(newMsg);
-    log.scrollTop = log.scrollHeight;
-    input.value = "";
- 
-    //client side message to server
-    console.log("Voice message has been transcribed")
-  }
+    function rendervoicemessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = "👤(transcribed) " + msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
 
-  //function turnoffmic was here for the old mic system. Replaced and deleted. Check github for old version (Old version was not implemented and will not work)
- 
-    socket.on("Timer",(secondsLeft) =>{
+      console.log("Voice message has been transcribed")
+    }
+
+    function rendervoicemessageothers(X) {
+      const input = X[1]
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.textContent = `${X[0]}(transcribed): ${msg}`
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      //client side message to server
+      console.log("Voice message has been transcribed")
+    }
+
+    function renderfbwmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "Red"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Alert message has been transcribed")
+    }
+
+    function renderalertmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "Red"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Alert message has been transcribed")
+    }
+
+    function rendercorrectmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "Green"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Correct message has been transcribed")
+    }
+
+    function renderturnmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      if (msg === "Team_A") {
+        newMsg.style.color = "Blue"
+        newMsg.textContent = `${Team_Name_List[0]}'s Turn`;
+        log.appendChild(newMsg);
+        log.scrollTop = log.scrollHeight;
+        input.value = "";
+      } else if (msg === "Team_B") {
+        newMsg.style.color = "Yellow"
+        newMsg.textContent = `${Team_Name_List[1]}'s Turn`;
+        log.appendChild(newMsg);
+        log.scrollTop = log.scrollHeight;
+        input.value = "";
+      }
+
+
+      console.log("Turn message has been transcribed")
+    }
+
+    function renderplayerjoinmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "#fc522d"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Player joining stuff")
+    }
+
+    function renderenoughplayersmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "#fc522d"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Enough Players")
+    }
+
+    function Teamturnmessage(X) {
+      //Used to render the client side messages before sending to the server
+      const input = X
+      const msg = input
+      if (msg === "") return;
+      const log = document.getElementById("chatLog");
+      const newMsg = document.createElement("div");
+      newMsg.style.color = "#fc522d"
+      newMsg.textContent = msg;
+      log.appendChild(newMsg);
+      log.scrollTop = log.scrollHeight;
+      input.value = "";
+
+      console.log("Team Turn Message")
+    }
+
+    socket.emit("Say_My_Name", name) // if this name guest number randomly changes then its probably something to do with the execution of the name variable or something
+
+    socket.once("enough_players", (P_list_len) => {
+      drawBtn.hidden = false
+      if (P_list_len === 4) {
+        document.getElementById("Not_enough_players").hidden = true
+        X = `Enough Players Draw A Card To Start (If your a cardholder and its your turn)`
+        renderenoughplayersmessage(X)
+        //Y = `Team: ${Team_Name_List[0]} starts first!`
+        //Teamturnmessage(X)
+      }
+    })
+
+    socket.on("Not_Enough_Players", (username_and_list_len) => {
+      const X = `${username_and_list_len[0]} has joined the game ${4 - username_and_list_len[1]}/4 players needed`
+      renderplayerjoinmessage(X)
+      console.log("P_list", username_and_list_len[1])
+      document.getElementById("Player_Count").textContent = username_and_list_len[1]
+    })
+
+    
+    //function turnoffmic was here for the old mic system. Replaced and deleted. Check github for old version (Old version was not implemented and will not work)
+
+    socket.on("Timer", (secondsLeft) => {
       document.getElementById("timer").textContent = secondsLeft;
     });
 
-    socket.on("Team_Names",(Team_Name) => {
+    socket.on("Team_Names", (Team_Name) => {
+
       console.log(Team_Name)
-      if (Team_Name_List.length<2){
-        try{
+      if (Team_Name_List.length < 2) {
+        try {
           document.getElementById("scoreA").textContent = Team_Name[0]
           document.getElementById("scoreB").textContent = Team_Name[1]
           Team_Name_List.push(Team_Name[0])
           Team_Name_List.push(Team_Name[1])
           document.getElementById("setupScreen").style.display = "none"
           document.getElementById("gameArea").style.display = "block";
+          displayTeamNames()
+          //if (My_Team === "Team_A") {
+          //Team.textContent = Team_Name[0]
+          // } else if (My_Team === "Team_B") {
+          //   Team.textContent = Team_Name[1]
+          // }
           //code was here to display team. Replaced and deleted.
         } catch {
           document.getElementById("scoreA").textContent = "Team A"
@@ -326,176 +572,267 @@
           Team_Name_List.push("Team B")
           document.getElementById("setupScreen").style.display = "none"
           document.getElementById("gameArea").style.display = "block";
+          displayTeamNames()
+          ///if (My_Team === "Team_A") {
+          //Team.textContent = Team_Name[0]
+          //} else if (My_Team === "Team_B") {
+          //Team.textContent = Team_Name[1]
+          //}
           //code was here to display team. Replaced and deleted.
         }
       }
-      
+
     })
 
-    
- 
-    socket.on("Round_End", () =>{
-      alert("Round Ended")
-      //code was here that was used to disable the draw buton.Redundant and deleted.
-    })
-   
-    socket.on("card_drawn", (card) =>{
-      if (My_Role == "card_holder") {
-
-        document.getElementById("cardDisplay").innerHTML = `
-        <h2>Word: <span id="mainWord" style="color: #e91e63">${card.keyword}</span></h2>
-        <p><strong>Forbidden Words:</strong></p>
-        <ul>${card.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
-        `;
-        console.log("Sucess")
-        //Code was here to display the chosen card. Code replaced with effy's code since it works. For old code check github.
-      } else if (My_Role== "guesser") {
-          console.log("This line was triggered")
-          document.getElementById("cardDisplay").textContent="Guess the Card!"
-          //Code was here that was used to append the entire card to the guessers card display area. Deleted because of way game works. For old code check github.
-      };
-    
-    });
-
-    toggleButton.addEventListener("click", function() {
-      isOn =! isOn;
-      console.log(isOn)
-
-      recognition.addEventListener("end", () => {
-        if (isOn === true) {
-          try {
-            recognition.start();
-
-          } catch (error) {
-            console.log("Process already running")
-
-          }
-          
-        }
-          
-      });
-
-      
-
-      if (isOn === true) {
-        
-        document.getElementById("Mic_Button").textContent = "On"
-
-        //Code here was used here to append the voice logs to the chat. Didnt work
-
-        recognition.start();
-        
-      } else {
-        document.getElementById("Mic_Button").textContent = "Off"
-      
-        recognition.stop();
+    socket.once("One_off_display", (team_name) => {
+      if (My_Team === "Team_A"){
+        console.log("One off display")
+        const X = team_name[0]
+        teamandrolesannouncementmessage(X)
+      } else if (My_Team === "Team_B") {
+        const X = team_name[1]
+        console.log("AAAA",team_name)
+        teamandrolesannouncementmessage(X)
       }
 
-      
-
+    })
+    
+    socket.on("Round_End", (currentRound) => {
+      //alert("Round Ended")
+      console.log("Round ended")
+      document.getElementById("cardDisplay").innerHTML = `Draw A card`
+      //if (currentRound)
+      //code was here that was used to disable the draw buton.Redundant and deleted.
+      if (currentRound % 2 == 1) {
+        const X = `${Team_Name_List[0]}'s Turn`
+        //Teamturnmessage(X)
+      } else {
+        const X = `${Team_Name_List[1]}'s Turn`
+        //Teamturnmessage(X)
+        //Used to return the current round. left in since could be useful
+        //return currentRound;
+      }
     })
 
-    recognition.addEventListener("result", (e) => {
-          //Some code was here that appended the results 
-          const text = Array.from(e.results)
+    socket.on("card_drawn", (card) => {
+      if (My_Role == "card_holder") {
+        //try {
+        document.getElementById("cardDisplay").innerHTML = `
+          <h2>Word: <span id="mainWord" style="color: #e91e63">${card.keyword}</span></h2>
+          <p><strong>Forbidden Words:</strong></p>
+          <ul>${card.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
+          `;
+        console.log("Sucess")
+        client_card = card
+        //} catch {
+        console.log("Card not yet drawn")
+        //}
+
+
+        if (client_card !== null) {
+          backup_client_card = client_card
+        }
+        //Code was here to display the chosen card. Code replaced with effy's code since it works. For old code check github.
+      } else if (My_Role == "guesser") {
+        console.log("This line was triggered")
+        document.getElementById("cardDisplay").textContent = "Guess the Card!"
+        //Code was here that was used to append the entire card to the guessers card display area. Deleted because of way game works. For old code check github.
+        client_card = card
+        if (client_card !== null) {
+          backup_client_card = client_card
+        }
+      };
+
+    });
+
+    try {
+      toggleButton.addEventListener("click", function () {
+        isOn = !isOn;
+        console.log(isOn)
+        recognition.addEventListener("end", () => {
+          if (isOn === true) {
+            try {
+              recognition.start();
+
+            } catch (error) {
+              console.log("Process already running")
+
+            }
+
+          }
+        });
+        if (isOn === true) {
+          document.getElementById("Mic_Button").textContent = "Send"
+          //Code here was used here to append the voice logs to the chat. Didnt work
+          recognition.start();
+        } else {
+          document.getElementById("Mic_Button").textContent = "Record"
+          recognition.stop();
+        }
+      })
+
+      recognition.addEventListener("result", (e) => {
+        //Some code was here that appended the results 
+        const text = Array.from(e.results)
           .map((result) => result[0])
           .map((result) => result.transcript)
           .join("");
-          const msg = text
-          
-          socket.emit("transcribed_message", (msg)) //sends to the server
-          console.log(text);
-          rendervoicemessage(text); //first display is here. It displays on users screen 1
-      });
+        const msg = text
 
- 
+        socket.emit("transcribed_message", [name, msg]) //sends to the server
+        console.log(text);
+        rendervoicemessage(text); //first display is here. It displays on users screen 1
+      });
+    } catch {
+      console.log("User not using chrome or other issue relating to mic")
+    }
+
     socket.on("role_assigned", (role) => {
+      console.log("Assigned role:", role)
       const drawBtn = document.getElementById("drawBtn")
       const roleDisplay = document.getElementById("roleDisplay")
-      My_Role=role
+      My_Role = role
 
       if (role == "guesser") {
         roleDisplay.textContent = "Guesser"
         drawBtn.style.display = "none";
-       
+        console.log("Role for client is guesser")
       };
- 
+
       if (role == "card_holder") {
         roleDisplay.textContent = "card_holder"
-       
+        console.log("Role for client is Holder")
+
       };
- 
+      //teamandrolesannouncementmessage()
     });
- 
+
     socket.on("Team", (assignedTeam) => {
       const Team = document.getElementById("Team")
       My_Team = assignedTeam
       if (assignedTeam == "Team_A") {
-        Team.textContent = "Team_A"
+        //Team.textContent = My_Team
         My_Team = "Team_A"
       }
- 
+
       if (assignedTeam == "Team_B") {
-        Team.textContent = "Team_B"
+        //Team.textContent = My_Team
         My_Team = "Team_B"
+
       }
     })
- 
+
+
+
+    document.getElementById("guessInput").addEventListener("keydown", function (event) {
+      if (event.key === 'Enter') {
+        document.getElementById("chatBtn").click();
+      }
+    })
+
     //Client side WS code to display sent messages
-    socket.on("chat_message" , (Reply) => {
+    socket.on("chat_message", (Reply) => {
       const log = document.getElementById("chatLog");
       const newMsg = document.createElement("div");
-      newMsg.textContent = `Other: ${Reply}`
+      newMsg.textContent = `${Reply[0]}: ${Reply[1]}`
       log.appendChild(newMsg);
       log.scrollTop = log.scrollHeight;
     });
 
-    socket.on("chat_transcribed_message", (msg) => {
-      text = msg
+    socket.on("chat_transcribed_message", (text) => {
       rendervoicemessageothers(text)
     });
- 
-    socket.on("Forbidden_Word_Used" , (Forbidden_Word_Used) => {
-      console.log("Forbidden word")
-      alert("U Have Used A Forbidden Word")
+
+    socket.on("Forbidden_Word_Used", (Forbidden_Word_Used) => {
+      console.log("Forbidden word used")
+      X = (`${My_Team} Has Used a forbidden word. Keyword was: ${client_card.keyword}`);
+      renderalertmessage(X)
+      socket.emit("FBW_Used", My_Team)
+
+      //alert("U Have Used A Forbidden Word")
     })
- 
+
+    socket.on("FBW_Used_Reply", (Team_Alert_FB_Used) => {
+      console.log("NOTHER TEAM USED FBW")
+      if (client_card === null) {
+        const X = (`${Team_Alert_FB_Used} Has Used a forbidden word. Keyword was: ${backup_client_card.keyword}`)
+        renderalertmessage(X)
+
+      } else {
+        const X = (`${Team_Alert_FB_Used} Has Used a forbidden word. Keyword was: ${backup_client_card.keyword}`)
+        renderalertmessage(X)
+
+      }
+
+    })
+
     socket.on("Correct_Answer", () => {
-      alert("correct answer has been said")
+      socket.emit("Correct_Guess_Made")
+      if (client_card === null) {
+        const X = (`The Keyword was guessed the word was ${backup_client_card.keyword}`)
+        rendercorrectmessage(X)
+      } else {
+        const X = (`The Keyword was guessed the word was ${client_card.keyword}`)
+        rendercorrectmessage(X)
+      }
+
+      //alert("correct answer has been said")
       //document.getElementById("drawBtn").disabled = false;
       chatBtn.disabled = true;
       if (My_Team == "Team_A") { //BIG PRIOIRTY BUG HAVE TO REDO THE POINTS SYSTEM AND TEAM SYSTEM(Found a workaround)
-        scores.Team_A_Points ++
+        scores.Team_A_Points++
 
         console.log("Team A + 1")
-        console.log("Current Score list var from A:",scores)
-      
-        socket.emit("Points_Updated",scores)
-        
-      } 
-      
+        console.log("Current Score list var from A:", scores)
+
+        socket.emit("Points_Updated", scores)
+
+      }
+
       if (My_Team == "Team_B") {
-        scores.Team_B_Points ++
-        console.log("Current Score list var from B:",scores)
+        scores.Team_B_Points++
+        console.log("Current Score list var from B:", scores)
         console.log("Team B + 1")
         //Logs scores. was replaced with the above code to debugging more cleaner
         //console.log(scores)
-        
-        socket.emit("Points_Updated",scores)
+
+        socket.emit("Points_Updated", scores)
       }
-      
+
+    })
+
+    socket.on("Render_Correct_Guess", () => {
+      if (client_card === null) {
+        const X = (`The Keyword was guessed the word was ${backup_client_card.keyword}`)
+        rendercorrectmessage(X)
+      } else {
+        const X = (`The Keyword was guessed the word was ${client_card.keyword}`)
+        rendercorrectmessage(X)
+      }
     })
 
     socket.on("Said_Key_Word", (Forbidden_Word_Used) => {
       console.log("Card_Holder said key word")
-      alert("U said a key word")
+      X = (`${My_Team}'s CardHolder Has Used the Keyword :( Keyword was: ${client_card.keyword}`)
+      renderalertmessage(X)
+      socket.emit("USR_SKW", My_Team)
+      //alert("U said a key word")
       //Code was here to disble the draw btn if a card holder said the keyword. Didnt work. was deleted
-      
     })
-    
+
+    socket.on("USR_SKW_REPLY", (Sender_Team_payload) => {
+      if (client_card === null) {
+        X = (`${Sender_Team_payload}'s CardHolder Has Used the Keyword :( Keyword was: ${backup_client_card.keyword}`)
+        renderalertmessage(X)
+      } else {
+        X = (`${Sender_Team_payload}'s CardHolder Has Used the Keyword :( Keyword was: ${client_card.keyword}`)
+        renderalertmessage(X)
+      }
+    })
+
     socket.on("Update_Points", (updated_Scores) => {
       scores = Object.assign(updated_Scores);
-      console.log("Updated scores :",scores)
+      console.log("Updated scores :", scores)
       document.getElementById("scoreTeamA").textContent = scores.Team_A_Points
       document.getElementById("scoreTeamB").textContent = scores.Team_B_Points
       //Code below was used to see if i could push the current state of the original html page\\
@@ -503,283 +840,140 @@
     })
     //Code was here to update scores. Replaced by the above code\\
 
+    socket.on("Someone_Won", () => {
+      if (scores.Team_A_Points >= 3 && My_Team === "Team_A") {
+        window.location.href = "/Victory"
+      } else if (scores.Team_A_Points >= 3 && My_Team === "Team_B") {
+        window.location.href = "/Defeat"
+      }
+
+      if (scores.Team_B_Points >= 3 && My_Team === "Team_B") {
+        window.location.href = "/Victory"
+      } else if (scores.Team_B_Points >= 3 && My_Team === "Team_A") {
+        window.location.href = "/Defeat"
+      }
+    })
+
+    //socket.once("UpdateCurrentTeamPlaying", (currentTurn) => {
+    //if (currentRound % 2 == 1) {
+    //const X = `${Team_Name_List[0]}'s Turn`
+    //Teamturnmessage(X)
+    //} else {
+    //const X = `${Team_Name_List[1]}'s Turn`
+    //Teamturnmessage(X)
+    //Used to return the current round. left in since could be useful
+    //return currentRound;
+    //}
+    //})
+
+
     socket.on("Team_A_Turn", (currentRound) => {
-      document.getElementById("cardDisplay").innerText=originalhtml
+      currentTurn = null
+      document.getElementById("cardDisplay").innerText = originalhtml
       console.log(currentRound)
-      console.log("Team A's Turn Round :",currentRound)
+      console.log("Team A's Turn Round :", currentRound)
       const A_Name = Team_Name_List[0]
-      console.log("THE LIST UNLOADED",Team_Name_List) //<< If this returns as undefined it means the code is processing the turn logic before the name logic
-      document.getElementById("teamName").innerText = A_Name
-      
+      console.log("THE LIST UNLOADED", Team_Name_List) //<< If this returns as undefined it means the code is processing the turn logic before the name logic
+      const teamName = document.getElementById("teamName")
+      teamName.style.color = "Red"
+      teamName.innerText = A_Name
+      const X = `${A_Name}'s Turn`
+      //Teamturnmessage(X)
+      let Turn = "Team_A"
+      currentTurn = Turn
       if (My_Team === "Team_A") {
         document.getElementById("chatBtn").disabled = false
         toggleButton.disabled = false
       } else if (My_Team === "Team_B") {
         document.getElementById("chatBtn").disabled = true
-        
+        document.getElementById("chatBtn").style.background.color = "gray"
+        drawBtn.style.background.color = "gray"
         if (isOn === true) {
           document.getElementById("Mic_Button").click()
           recognition.abort()
-          
+
         }
         toggleButton.disabled = true
         //document.getElementById("cardDisplay").innerText = "Team A's Turn"
       }
-      
+
       if (My_Team === "Team_A" && My_Role === "card_holder") {
         document.getElementById("drawBtn").disabled = false
       } else if (My_Team === "Team_B") {
         document.getElementById("drawBtn").disabled = true
       }
-      const round = currentRound
+      round = currentRound
       document.getElementById("RoundDisplay").textContent = round
+
     })
 
-    console.log("Team Names from someone else",Team_Name_List)
+    console.log("Team Names from someone else", Team_Name_List)
 
     socket.on("Team_B_Turn", (currentRound) => {
-      document.getElementById("cardDisplay").innerText=originalhtml
+      currentTurn = null
+      document.getElementById("cardDisplay").innerText = originalhtml
       const B_Name = Team_Name_List[1]
-      console.log("Team B's Turn Round :",currentRound)
+      console.log("Team B's Turn Round :", currentRound)
 
-      document.getElementById("teamName").innerText = B_Name
+      //const X = `${Team_Name_List[1]}'s Turn`
+      //Teamturnmessage(X)
 
+      const teamName = document.getElementById("teamName")
+      teamName.style.color = "Blue"
+      teamName.innerText = B_Name
+
+      
+
+      let Turn = "Team_B"
+      currentTurn = "Team_B"
       if (My_Team === "Team_B") {
         document.getElementById("chatBtn").disabled = false
-        toggleButton.disabled=false
+        toggleButton.disabled = false
       } else if (My_Team === "Team_A") {
         document.getElementById("chatBtn").disabled = true
         if (isOn === true) {
           document.getElementById("Mic_Button").click()
           recognition.abort()
-          
+
         }
         toggleButton.disabled = true
         //document.getElementById("cardDisplay").innerText = "Team B's Turn"
       }
-      
+
       if (My_Team === "Team_B" && My_Role === "card_holder") {
         document.getElementById("drawBtn").disabled = false
       } else if (My_Team === "Team_A") {
         document.getElementById("drawBtn").disabled = true
       }
-      const round = currentRound
+      round = currentRound
       document.getElementById("RoundDisplay").textContent = round
     })
- 
-    //socket.on("Next_Round" , (data) =>{
-      //document.getElementById("RoundDisplay").textContent = data.round;
-      //document.getElementById("teamName").textContent = data.Team
-    //});
- 
-    //socket.on("Game_Over", () => {
-      //alert("Game Over")
-      //document.getElementById("drawBtn").disabled = true;
-    //})
- 
-    //document.getElementById("micBtn").addEventListener("click", () => {
-      //socket.emit("Mic_Pressed")
-      //console.log("Mic pressed")
-    //})
- 
-    //socket.on("Transcribed_Text", (Text) => {
-      //const log = document.getElementById("chatLog");
-      //const newMsg = document.createElement("div");
-      //newMsg.textContent = `Other(Transcribed): ${Reply}`
-      //log.appendChild(newMsg);
-      //log.scrollTop = log.scrollHeight;
-    //});
- 
- 
- 
-  </script>
-  </body>
-</html>
 
-<!--Effy's Original code begins here--->
-<!--<script>
-  //socket = io();
+    socket.on("TeamA",() => {
+      const A_Name = Team_Name_List[0]
+      const X = `${A_Name}'s Turn`
+      Teamturnmessage(X)
+    })
 
-  function getAllCards() {
-    const baseCards = [
-      { word: "Sun", forbidden: ["Hot", "Bright", "Sky", "Day", "Light"] },
-      { word: "Pizza", forbidden: ["Cheese", "Toppings", "Slice", "Oven", "Italian"] },
-      { word: "Computer", forbidden: ["Keyboard", "Screen", "Mouse", "Internet", "Device"] },
-      { word: "Beach", forbidden: ["Sand", "Ocean", "Waves", "Sunburn", "Towel"] },
-      { word: "Airplane", forbidden: ["Fly", "Pilot", "Wings", "Airport", "Travel"] },
-      { word: "Chocolate", forbidden: ["Sweet", "Candy", "Dark", "Bar", "Milk"] },
-      { word: "Guitar", forbidden: ["Strings", "Music", "Instrument", "Pick", "Electric"] },
-      { word: "Elephant", forbidden: ["Trunk", "Big", "Animal", "Africa", "Tusks"] },
-      { word: "Library", forbidden: ["Books", "Quiet", "Read", "Study", "Shelves"] },
-      { word: "Basketball", forbidden: ["Hoop", "Dribble", "Court", "NBA", "Team"] },
-      { word: "Doctor", forbidden: ["Hospital", "Patient", "Medicine", "Nurse", "Health"] }
-    ];
-    const userCards = JSON.parse(localStorage.getItem("taboo_custom_cards") || "[]");
-    return baseCards.concat(userCards);
-  }
+    socket.once("TeamAoneoff",() => {
+      const A_Name = Team_Name_List[0]
+      const X = `${A_Name}'s Turn`
+      Teamturnmessage(X)
+    })
 
-  let allCards = [];
-  let availableCards = [];
-  let currentCard = null;
-  let teamA = "Team A", teamB = "Team B";
-  let score = { A: 0, B: 0 };
-  let currentTeam = "A";
-  let gameOver = false;
-  let timer;
-  let timeLeft = 30;
-  const winningScore = 10;
+    socket.once("TeamBoneoff",() => {
+      const B_Name = Team_Name_List[1]
+      const X = `${B_Name}'s Turn`
+      Teamturnmessage(X)
+    })
 
-  function startGame() {
-    const a = document.getElementById("teamAInput").value.trim();
-    const b = document.getElementById("teamBInput").value.trim();
-    if (a) teamA = a;
-    socket.emit("Team_A_Name", (teamA))
-    if (b) teamB = b;
-    socket.emit("Team_B_Name", (teamB))
-
-    
-    document.getElementById("teamName").textContent = teamA;
-
-    allCards = getAllCards();
-    availableCards = [...allCards];
-
-    document.getElementById("setupScreen").style.display = "none";
-    document.getElementById("gameArea").style.display = "block";
-
-    updateScores();
-    showRandomCard();
-  }
-
-  function showRandomCard() {
-    if (gameOver || availableCards.length === 0) return;
-    clearInterval(timer);
-    timeLeft = 30;
-    updateTimer();
-
-    const index = Math.floor(Math.random() * availableCards.length);
-    currentCard = availableCards.splice(index, 1)[0];
-
-    document.getElementById("cardDisplay").innerHTML = `
-      <h2>Word: <span id="mainWord" style="color: #e91e63">[Hidden]</span></h2>
-      <p><strong>Forbidden Words:</strong></p>
-      <ul>${currentCard.forbidden.map(w => `<li>🚫 ${w}</li>`).join('')}</ul>
-    `;
-
-    timer = setInterval(() => {
-      timeLeft--;
-      updateTimer();
-      if (timeLeft === 0) {
-        clearInterval(timer);
-        document.getElementById("mainWord").textContent = currentCard.word;
-      }
-    }, 1000);
-  }
-
-  function updateTimer() {
-    document.getElementById("timer").textContent = `⏳ Time left: ${timeLeft}s`;
-  }
-  //PLace Holder for text message until effy is done with his features
-  function sendMessage() {
-      
-    };
-
-  function correctGuess() {
-    if (gameOver) return;
-    score[currentTeam]++;
-    updateScores();
-    checkWinner();
-    if (!gameOver) {
-      switchTeam();
-      showRandomCard();
-    }
-  }
-
-  function nextTurn() {
-    if (gameOver) return;
-    switchTeam();
-    showRandomCard();
-  }
-
-  function switchTeam() {
-    currentTeam = currentTeam === "A" ? "B" : "A";
-    document.getElementById("teamName").textContent = currentTeam === "A" ? teamA : teamB;
-  }
-
+    socket.on("TeamB",() => {
+      const B_Name = Team_Name_List[1]
+      const X = `${B_Name}'s Turn`
+      Teamturnmessage(X)
+    })
   
+  </script>
+</body>
 
-  function checkWinner() {
-    if (score.A >= winningScore) {
-      endGame(`🏆 ${teamA} Wins!`);
-    } else if (score.B >= winningScore) {
-      endGame(`🏆 ${teamB} Wins!`);
-    }
-  }
-
-  function endGame(message) {
-    gameOver = true;
-    clearInterval(timer);
-    document.getElementById("winMessage").textContent = message;
-    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
-    document.getElementById("btnRestart").disabled = false;
-  }
-
-  function restartGame() {
-    score = { A: 0, B: 0 };
-    currentTeam = "A";
-    gameOver = false;
-    availableCards = [...getAllCards()];
-    clearInterval(timer);
-    timeLeft = 30;
-    updateScores();
-    document.getElementById("winMessage").textContent = "";
-    document.querySelectorAll("button").forEach(btn => btn.disabled = false);
-    document.getElementById("guessInput").value = "";
-    document.getElementById("guessFeedback").textContent = "";
-    showRandomCard();
-  }
-
-  function submitGuess() {
-    //merged this code with the chatmessage function in the old guess.html code
-    const input = document.getElementById("guessInput").value.trim().toLowerCase();
-    const correctWord = currentCard.word.toLowerCase();
-    const feedback = document.getElementById("guessFeedback");
-    const msg = input;
-    if (msg === "") return;
-    const log = document.getElementById("chatLog");
-    const newMsg = document.createElement("div");
-    newMsg.textContent = "👤 " + msg;
-    log.appendChild(newMsg);
-    log.scrollTop = log.scrollHeight;
-    input.value = "";
- 
-    //client side message to server
-    socket.emit("chat_message", msg);
-    chatInput.value = "";
-    console.log("Chat has been emitted from client end")
-
-    //if (input === correctWord) {
-      //feedback.style.color = "#00ff99";
-      //feedback.textContent = "✅ Correct!";
-      //correctGuess();
-      //document.getElementById("guessInput").value = "";
-    //} else {
-      //feedback.style.color = "#ff6666";
-      //feedback.textContent = "❌ Try again.";
-    //}
-  }
-
-  socket.on("Update_Team_Names", (team_name_update) => {
-    document.getElementById("scoreA").textContent = team_name_update[0];
-    document.getElementById("scoreB").textContent = team_name_update[1];
-  })
-
-  socket.on("chat_message" , (Reply) => {
-      const log = document.getElementById("chatLog");
-      const newMsg = document.createElement("div");
-      newMsg.textContent = `Other: ${Reply}`
-      log.appendChild(newMsg);
-      log.scrollTop = log.scrollHeight;
-    });
-</script>
-
-
+</html>

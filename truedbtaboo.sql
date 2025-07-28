@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 04, 2025 at 09:25 AM
+-- Generation Time: Jul 27, 2025 at 11:24 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,29 @@ SET time_zone = "+00:00";
 --
 -- Database: `truedbtaboo`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admins`
+--
+
+CREATE TABLE `admins` (
+  `id` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `wins` int(11) DEFAULT 0,
+  `games_played` int(11) DEFAULT 0,
+  `losses` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`id`, `username`, `password_hash`, `created_at`, `wins`, `games_played`, `losses`) VALUES
+(1, 'admin', '$2b$10$d8V5DUfmIiFJKwixtrvF8OmmWRw1qy0Nhu3/eKin6aYjhDyP5GVYG', '2025-07-16 04:01:27', 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -43,7 +66,24 @@ CREATE TABLE `cards` (
 
 INSERT INTO `cards` (`id`, `keyword`, `forbidden1`, `forbidden2`, `forbidden3`, `forbidden4`, `forbidden5`) VALUES
 (1, 'king', 'Monarch ', 'Emperor ', 'Sovereign ', 'Autocrat ', 'Regent'),
-(2, 'king', 'Monarch ', 'Ruler ', 'Emperor ', 'Dictator ', 'Prince');
+(3, 'king', 'Monarch', 'Emperor', 'Heir', 'Prince', 'Ruler'),
+(4, 'ocean', 'Sea', 'Gulf', 'Harbor', 'Inlet', 'Sound'),
+(5, 'ocean', 'fish', 'guts', 'yes', 'no', 'jokes'),
+(6, 'ocean', 'fish', 'water', 'sand', 'beach', 'deep'),
+(7, 'guts', 'guts', 'guts', 'guts', 'guts', 'guts'),
+(11, 'Fish', 'fish', 'fish', 'fish', 'fish', 'fish');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `feedback`
+--
+
+CREATE TABLE `feedback` (
+  `id` int(11) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -83,17 +123,42 @@ CREATE TABLE `users` (
   `team` varchar(10) NOT NULL,
   `socket_id` varchar(255) NOT NULL,
   `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `game_id` int(11) DEFAULT NULL
+  `game_id` int(11) DEFAULT NULL,
+  `password_hash` varchar(255) DEFAULT NULL,
+  `wins` int(11) DEFAULT 0,
+  `games_played` int(11) DEFAULT 0,
+  `losses` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `team`, `socket_id`, `joined_at`, `game_id`, `password_hash`, `wins`, `games_played`, `losses`) VALUES
+(1, 'rudy', '', '', '2025-07-20 13:38:39', NULL, '$2b$10$C2MeN7D2L3yrJiJh2k.FJuIoXh9fGbcK6M2e4mcblSfKNSsO3lYoO', 1, 0, 0),
+(2, 'bludclart', '', '', '2025-07-25 16:28:28', NULL, '$2b$10$4uKZWNzsHAhbeXfGF2zm/.O4.L.eCrMFEPGRJknBRCJYcJbNKc7M.', 1, 0, 0);
 
 --
 -- Indexes for dumped tables
 --
 
 --
+-- Indexes for table `admins`
+--
+ALTER TABLE `admins`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`);
+
+--
 -- Indexes for table `cards`
 --
 ALTER TABLE `cards`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `feedback`
+--
+ALTER TABLE `feedback`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -123,10 +188,22 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `admins`
+--
+ALTER TABLE `admins`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `cards`
 --
 ALTER TABLE `cards`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT for table `feedback`
+--
+ALTER TABLE `feedback`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `game_cards`
@@ -144,7 +221,7 @@ ALTER TABLE `game_logs`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

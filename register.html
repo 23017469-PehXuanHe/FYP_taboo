@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      font-family: Arial, sans-serif;
+      color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+ 
+    .login-box {
+      background-color: #2d2d44;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+      width: 300px;
+    }
+ 
+    h1 {
+      text-align: center;
+      color: #ffd369;
+      margin-bottom: 20px;
+    }
+ 
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+ 
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #2b2b3d;
+      color: #fff;
+      font-size: 14px;
+    }
+ 
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+ 
+    button:hover {
+      background-color: #388e3c;
+    }
+ 
+    #result {
+      margin-top: 1rem;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>Register</h1>
+    <form id="registerForm">
+      <label>Username:</label>
+      <input type="text" name="username" required />
+ 
+      <label>Password:</label>
+      <input type="password" name="password" required />
+ 
+      <label>Role:</label>
+      <select name="role" required>
+        <option value="guest">Guest</option>
+        <option value="admin">Admin</option>
+      </select>
+ 
+      <button type="submit">Register</button>
+    </form>
+ 
+    <p id="result"></p>
+  </div>
+ 
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        username: form.username.value,
+        password: form.password.value,
+        role: form.role.value
+      };
+      console.log(data)
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const msg = await res.text();
+      console.log(msg)
+      if (res.ok) window.location.href = "/login.html";
+    });
+  </script>
+</body>
+</html>

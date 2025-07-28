@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Border Animation</title>
+  <link rel="stylesheet" href="/victory_style.css">
+  <audio id="victory-sound" src="/confetti.mp3"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+  window.onload = function () {
+    const victorySound = document.getElementById("victory-sound");
+
+    // Set volume (70%)
+    victorySound.volume = 0.7;
+
+    // Play sound effect
+    victorySound.play();
+    
+    // Launch confetti
+    confetti({
+      particleCount: 200,
+      spread: 120,
+      origin: { y: 0.6 }
+    });
+  };
+</script>
+
+</head>
+<body>
+  <div class="card">
+    <h1>Victory! 🏆</h1>
+    <p>Winner Winner Chicken Dinner!</p>
+    <a class="btn" onclick="redirect()">⬅ Back to Home</a>
+  </div>
+  <script>
+    function redirect() {
+      if(localStorage.length > 0 ){
+        window.location.href = "/profile.html"
+      } else if (localStorage.length === 0) {
+        window.location.href = "/profile.html"
+      }
+    }
+  </script>
+</body>
+</html>

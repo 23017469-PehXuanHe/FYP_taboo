@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Taboo Card Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2f;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1,
+        h2 {
+            color: #ea00ff;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="text"],
+        select {
+            padding: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #2b2b3d;
+            color: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #2d2d44;
+            margin-top: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+        }
+
+        th,
+        td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #3a3a5a;
+            color: #ffd369;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+
+        button {
+            background-color: #ff6363;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            font-size: 16px;
+            border-radius: 6px;
+            margin-top: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #ff4a4a;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Taboo Card Generator</h1>
+
+    <p style="color: red;"></p>
+
+
+    <label for="topic">Enter Topic:</label>
+    <input type="text" id="topic" name="topic" required>
+
+    <label for="model">Select Model:</label>
+    <select name="model" id="model">
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+        <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 scout 17b</option>
+        <option value="gemma2-9b-it">Gemma2-9B IT</option>
+    </select>
+
+    <button type="submit" onclick="GenCards()">Generate Cards</button>
+    <button onclick="clearGeneratedRows()">Clear</button>
+
+    <h2>Generated Cards:</h2>
+    <input type="hidden" name="topic">
+    <table id="table">
+        <thead>
+            <tr>
+                <th>Keyword</th>
+                <th>Taboo 1</th>
+                <th>Taboo 2</th>
+                <th>Taboo 3</th>
+                <th>Taboo 4</th>
+                <th>Taboo 5</th>
+                <th>Save</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <input type="hidden" name="cards">
+                    <input type="text">
+                </td>
+                <td><input type="text"></td>
+                <td>
+                    <input type="hidden" name="cards">
+                    <input type="text">
+                </td>
+                <td>
+                    <input type="hidden" name="cards">
+                    <input type="text">
+                </td>
+                <td>
+                    <input type="hidden" name="cards">
+                    <input type="text">
+                </td>
+                <td>
+                    <input type="hidden" name="cards">
+                    <input type="text">
+                </td>
+                <td>
+                    <input type="checkbox" name="save_flags">
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <button type="submit" onclick="SaveCards()">Save to Card Library</button>
+    <button onclick="redirect()">Home</button>
+    <script src="https://localhost:3000/socket.io/socket.io.js"></script>
+
+    <script>
+        function GenCards() {
+            const topic = document.getElementById("topic").value
+            const model = document.getElementById("model").value
+
+            const tbody = document.querySelector("#table tbody");
+
+            fetch("/gencards", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    model: model
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data.reply)
+                    console.log(data.reply)
+                    let csvStarted = false;
+                    const rows = data.reply.trim().split('\n');
+
+                    // Filter potential fluff
+                    const skipPhrases = [
+                        "certainly", "here's", "sure", "let's", "of course", "based on your topic"
+                    ];
+
+                    rows.forEach((line) => {
+                        const lowerLine = line.toLowerCase().trim();
+
+                        // Skip blank or introductory lines
+                        if (!lowerLine) return;
+                        if (!line.includes(",")) return;
+
+                        // Skip if line starts with common AI fluff phrases
+                        if (skipPhrases.some(phrase => lowerLine.startsWith(phrase))) return;
+
+                        const values = line.split(",").map(cell => cell.trim());
+
+                        while (values.length < 6) {
+                            values.push("");
+                        }
+
+                        const tr = document.createElement("tr");
+                        values.forEach((val) => {
+                            const td = document.createElement("td");
+
+                            const hidden = document.createElement("input");
+                            hidden.type = "hidden";
+                            hidden.name = "cards";
+                            hidden.value = val;
+                            td.appendChild(hidden);
+
+                            const textInput = document.createElement("input");
+                            textInput.type = "text";
+                            textInput.value = val;
+                            td.appendChild(textInput);
+
+                            tr.appendChild(td);
+                        });
+
+                        const checkTd = document.createElement("td");
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.name = "save_flags";
+                        checkTd.appendChild(checkbox);
+                        tr.appendChild(checkTd);
+
+                        tbody.appendChild(tr);
+                    });
+
+
+                    // Add Save checkbox
+                    const checkTd = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.name = "save_flags";
+                    checkTd.appendChild(checkbox);
+                    tr.appendChild(checkTd);
+
+                    tbody.appendChild(tr);
+
+                });
+        }
+
+
+        function SaveCards() {
+            const tbody = document.querySelector("#table tbody");
+            const rows = tbody.querySelectorAll("tr");
+            const cardsToSave = [];
+            let hasInvalid = false;
+
+            rows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"][name="save_flags"]');
+                if (checkbox && checkbox.checked) {
+                    const inputs = row.querySelectorAll('td input[type="text"]');
+                    const rowValues = [];
+
+                    inputs.forEach(input => rowValues.push(input.value.trim()));
+
+                    // Make sure it saves all 6 
+                    const slicedValues = rowValues.slice(0, 6);
+
+                    const firstSixFilled = slicedValues.every(val => val !== "");
+
+                    if (firstSixFilled) {
+                        cardsToSave.push(slicedValues);
+                    } else {
+                        hasInvalid = true;
+                    }
+                }
+            });
+
+            if (hasInvalid) {
+                alert("Please ensure all selected rows have all 6 fields filled.");
+                return;
+            }
+
+            if (cardsToSave.length > 0) {
+                fetch("/savecards", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cards: cardsToSave })
+                })
+                    .then(res => res.json())
+                    .then(result => {
+                        alert("✅ Cards saved successfully.");
+                        console.log(result);
+                    })
+                    .catch(err => {
+                        console.error("Error saving cards:", err);
+                        alert("An error occurred while saving cards.");
+                    });
+            } else {
+                alert("No rows selected to save.");
+            }
+        }
+
+        function clearGeneratedRows() {
+            const tbody = document.querySelector("#table tbody");
+            // Keep the first row (index 0), remove everything after
+            while (tbody.rows.length > 1) {
+                tbody.deleteRow(1);
+            }
+        }
+
+        function redirect() {
+            if (localStorage.length > 0) {
+                window.location.href = "/profile.html"
+            } else if (localStorage.length === 0) {
+                window.location.href = "/profile.html"
+            }
+
+        }
+
+
+    </script>
+</body>
+
+</html>
